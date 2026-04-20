@@ -6,9 +6,9 @@ status: "active"
 ---
 # Zuri Platform — UI Component Inventory
 
-**Version:** 1.0
-**Date:** 2026-04-02
-**Total:** 32 components — all implemented (0 stubs)
+**Version:** 1.1
+**Date:** 2026-04-20
+**Total:** 32 components implemented + 8 missing (specs for 2 high-priority added)
 
 ## Sub-Inventories
 - [[UI--primitives|UI Primitives]] (6 components, ~285 LOC)
@@ -18,3 +18,4 @@ status: "active"
 
 ## Missing Components
 - [[UI--missing-components|Missing Components Priority List]]
+- [[UI--pipeline-components|Pipeline Components Spec]] — `PipelineStageBar` + `PipelineStageEditor` (High priority, fully specced)

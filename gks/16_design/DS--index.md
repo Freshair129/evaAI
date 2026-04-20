@@ -11,5 +11,6 @@ status: "active"
 - [[DS--typography|Typography]]
 - [[DS--elevation|Elevation & Depth]]
 - [[DS--components-interactions|Components & Interactions]]
-- [[DS--guidelines|Do's and Don’ts]]
+- [[DS--tokens|Design Tokens (CSS Custom Properties)]]
+- [[DS--guidelines|Do’s and Don’ts]]
 - [[UI--inventory|UI Component Inventory]]
