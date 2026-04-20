@@ -1,0 +1,94 @@
+# Phase 3.5 Micro-task Manifest Schema
+# Version: 1.0.0
+# Purpose: Declarative unit of work for SLM codegen (Qwen 14B local).
+#          1 task = 1 concern = 1 pure output = testable.
+
+schema_version: "1.0.0"
+
+task:
+  required:
+    - task_id                # "T1_validate-input"  — unique within feature
+    - feature                # "FEAT-006"            — back-reference to Phase 3
+    - concern                # single sentence, 1 concern per task
+    - output                 # { file, exports }     — what this task produces
+    - prompt                 # { template, inputs }  — how to instruct SLM
+    - acceptance_tests       # [{ input, expect }]   — pass/fail gate
+    - runner                 # { model, max_retries, temperature, num_ctx }
+
+  optional:
+    - depends_on             # [task_id]             — ordering (for compose)
+    - constraints            # [string]              — extra rules (forbidden imports etc)
+    - composer_slot          # "imports" | "body" | "exports"  — where this goes
+
+# ---------------------------------------------------------------------------
+# Field specs
+# ---------------------------------------------------------------------------
+
+task_id:
+  pattern: "^T\\d+_[a-z0-9-]+$"       # T1_foo, T2_bar-baz
+
+feature:
+  pattern: "^FEAT-\\d{3}$"
+
+concern:
+  max_length: 120
+  rule: "Single concern, no 'and', no 'also'. If you need a conjunction, split the task."
+
+output:
+  file:
+    description: "Relative path of the per-task artifact (NOT the composed file)"
+    example: "gks/phase3.5_microtasks/FEAT-006/_outputs/T1.out.js"
+  exports:
+    description: "What the composer will pluck out of this output"
+    type: array of { name, kind: function|const|class|default }
+
+prompt:
+  template:
+    description: "Jinja-lite string with {placeholders}. Keep under 400 tokens."
+  inputs:
+    description: "Key-value map fed into template before sending to SLM"
+
+acceptance_tests:
+  description: "Deterministic runtime checks that the SLM output must pass."
+  format:
+    - input: "JavaScript expression string evaluated as task input"
+      expect: "Expected return value (deep-equal)"
+  minimum: 2      # at least 2 cases to prevent overfitting
+
+runner:
+  model:
+    default: "qwen2.5-coder:14b-instruct-q4_K_M"
+    allowed: ["qwen2.5-coder:14b-instruct-q4_K_M", "qwen2.5-coder:3b"]
+  max_retries:
+    default: 3
+  temperature:
+    default: 0.0
+  num_ctx:
+    default: 4096            # keeps 14B fully GPU-offloaded on RTX 3060
+
+# ---------------------------------------------------------------------------
+# Manifest (one per feature)
+# ---------------------------------------------------------------------------
+manifest:
+  required:
+    - manifest_id            # "FEAT-006_POS_merge_endpoint"
+    - feature
+    - target_file            # "src/app/api/pos/tables/merge/route.js"
+    - tasks                  # ordered list of task_ids
+    - compose                # instructions for deterministic joiner
+  optional:
+    - blueprint_ref          # "gks/phase3_blueprints/FEAT-006_POS.yaml#api_contracts[1]"
+
+compose:
+  description: "Deterministic joiner recipe (NO SLM involved here)"
+  required:
+    - order                  # [T1, T2, T3, T4]
+    - layout                 # see templates for well-known shapes
+  layouts:
+    - name: "nextjs_app_router_route"
+      slots:
+        - header             # "export const dynamic = 'force-dynamic'"
+        - imports            # external imports (merged + deduped)
+        - helpers            # pure functions (T2 error mapper etc)
+        - handler            # main body inside withAuth callback
+        - exports            # "export const POST = withAuth(...)"

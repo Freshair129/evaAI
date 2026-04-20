@@ -1,0 +1,324 @@
+# Created At: 2026-04-10 03:52:00 +07:00
+# Last Updated: 2026-04-20 20:32:00 +07:00
+# ─────────────────────────────────────────────────────────
+# MSP Registry & Standards — Master Source of Truth
+# Single file for all ID naming, Agent registration, and Casing rules
+# ─────────────────────────────────────────────────────────
+
+id_naming_conventions:
+
+  # ─────────────────────────────────────────────
+  # DOMAIN: Memory & Soul Passport (MSP)
+  # ─────────────────────────────────────────────
+
+  - category: "Process Identifiers"
+    description: "ID สำหรับการจัดการโครงการและกระบวนการพัฒนา (Meta-Agent Workflow)"
+    prefix: "MSP-"
+    formats:
+      - name: "Session ID (sessionId)"
+        format: "MSP-SESS-[YYMMDD][SERIAL]"
+        example: "MSP-SESS-260420001"
+        scope: "global"
+        path: "~/.brain/msp/projects/<path-encoded>/sessions/"
+        description: "รหัสระบุรอบการสนทนา (Session) ซึ่งเป็น Traceability Anchor หลัก"
+
+      - name: "Episodic Memory"
+        scope: "global"
+        path: "~/.brain/msp/projects/<path-encoded>/memory/"
+        description: "ส่วนจัดเก็บความจำสรุปเหตุการณ์สำคัญ (Rich Metadata)"
+
+      - name: "Inbound Queue"
+        scope: "global"
+        path: "~/.brain/msp/projects/<path-encoded>/inbound/"
+        description: "ส่วนรับข้อมูล Knowledge รอการตรวจสอบ (Human Review Gate)"
+
+      - name: "Implementation Plan ID"
+        format: "MSP-IMP-[YYMMDD][SERIAL]"
+        example: "MSP-IMP-260420001"
+        scope: "project"
+        path: "gks/14_devlog/implement/"
+        description: "รหัสแผนการทางเทคนิคระดับโมดูลหรือฟีเจอร์"
+
+      - name: "Task ID (Agent Framework)"
+        format: "MSP-TSK-[YYMMDD][IMPSERIAL]-[SERIAL]"
+        example: "MSP-TSK-260420001-001"
+        scope: "project"
+        path: "gks/14_devlog/task/"
+        description: "รหัสงานย่อยรายเซสชันที่ AI Agent เป็นคนดำเนินการ"
+
+      - name: "Action / Audit ID (Sub-task)"
+        format: "MSP-ACT-[YYMMDD][TSKSERIAL]-[SERIAL]"
+        example: "MSP-ACT-260420001-001"
+        scope: "project"
+        path: "gks/14_devlog/task/"
+        description: "รหัสการกระทำ (C/R/U/D) ภายใต้ Task"
+
+      - name: "Action ID (Quick Task)"
+        format: "MSP-ACT-[YYMMDD][SERIAL]"
+        example: "MSP-ACT-260420001"
+        scope: "project"
+        path: "gks/14_devlog/task/"
+        description: "งานเล็กน้อย งานจุกจิก หรือ Quick Task ที่ไม่ต้องมี Implementation Plan"
+
+      - name: "Walkthrough ID (wktId)"
+        format: "MSP-WKT-[YYMMDD][TSKSERIAL]-[SERIAL]"
+        example: "MSP-WKT-260420001-001"
+        scope: "project"
+        path: "gks/14_devlog/walkthrough/"
+        description: "รหัสบันทึกการส่งมอบ/ตรวจสอบงาน (Audit Reference)"
+
+  # ─────────────────────────────────────────────
+  # DOMAIN: Atomic Knowledge (GKS)
+  # ─────────────────────────────────────────────
+
+  - category: "Atomic Knowledge Identifiers"
+    description: "รหัสและโฟลเดอร์สำหรับจัดเก็บความรู้แยกตามประเภท (Atomic Type)"
+    formats:
+      - name: "Ideas"
+        prefix: "IDEA--"
+        scope: "project"
+        path: "gks/ideas/"
+        description: "Raw prompts และไอเดียตั้งต้น (Phase 0)"
+      - name: "Concepts"
+        prefix: "CONCEPT--"
+        scope: "project"
+        path: "gks/concepts/"
+        description: "ความต้องการระดับสูง (Phase 1)"
+      - name: "ADRs"
+        prefix: "ADR--"
+        scope: "project"
+        path: "gks/adrs/"
+        description: "การตัดสินใจเชิงสถาปัตยกรรม (Phase 2)"
+      - name: "Algorithms"
+        prefix: "ALGO--"
+        scope: "project"
+        path: "gks/algorithms/"
+        description: "ตรรกะและสูตรคำนวณที่ซับซ้อน"
+      - name: "Entities"
+        prefix: "ENTITY--"
+        scope: "project"
+        path: "gks/entities/"
+        description: "โครงสร้างข้อมูลเบื้องต้น"
+      - name: "Features"
+        prefix: "FEAT--"
+        scope: "project"
+        path: "gks/features/"
+        description: "ข้อมูลจำเพาะของฟีเจอร์ (Phase 2 Spec)"
+      - name: "Flows"
+        prefix: "FLOW--"
+        scope: "project"
+        path: "gks/flows/"
+        description: "ลำดับการทำงาน (Process Flows)"
+      - name: "Frameworks"
+        prefix: "FRAME--"
+        scope: "project"
+        path: "gks/frameworks/"
+        description: "สถาปัตยกรรมและกฎพื้นฐาน"
+      - name: "Modules"
+        prefix: "MOD--"
+        scope: "project"
+        path: "gks/modules/"
+        description: "คำอธิบายโมดูลย่อย"
+      - name: "Parameters"
+        prefix: "PARAMS--"
+        scope: "project"
+        path: "gks/parameters/"
+        description: "ค่าตัวแปรและ Configuration"
+      - name: "Blueprints"
+        prefix: "BLUEPRINT--"
+        scope: "project"
+        path: "gks/blueprints/"
+        description: "YAML Blueprints สำหรับ Code Generation (Phase 3)"
+      - name: "API Specification (OpenAPI Hub)"
+        prefix: "API--"
+        scope: "project"
+        path: "gks/blueprints/api/"
+        description: "ศูนย์กลางสัญญา Interface (Master Hub) ที่เชื่อมโยง Endpoint ต่างๆ"
+      - name: "API Endpoint"
+        prefix: "ENDPOINT--"
+        scope: "project"
+        path: "gks/blueprints/api/endpoints/"
+        description: "รายละเอียดราย 1 Path/Method สำหรับ Code Generation"
+      - name: "API Entrypoint"
+        prefix: "ENTRYPOINT--"
+        scope: "project"
+        path: "gks/blueprints/api/entrypoints/"
+        description: "นิยาม Logic การเข้าถึงและการจัดการ Auth/Middleware"
+      - name: "Agent Capability (MCP)"
+        prefix: "MCP--"
+        scope: "project"
+        path: ".agents/mcp/"
+        description: "Model Context Protocol SDK สำหรับขยายความสามารถ Agent (Optional)"
+      - name: "Microtasks"
+        prefix: "T"
+        scope: "project"
+        path: "gks/microtasks/"
+        description: "Task YAMLs สำหรับ T1 Agent (Phase 3.5)"
+      - name: "Audits"
+        prefix: "AUDIT--"
+        scope: "project"
+        path: "gks/audits/"
+        description: "รายงานการตรวจสอบความปลอดภัยและคุณภาพ"
+      - name: "Ops"
+        prefix: "OPS--"
+        scope: "project"
+        path: "gks/ops/"
+        description: " Deployment configs และ IaC"
+
+  # ─────────────────────────────────────────────
+  # DOMAIN: System Infrastructure
+  # ─────────────────────────────────────────────
+
+  - category: "Infrastructure Folders"
+    description: "โครงสร้างโฟลเดอร์หลักสำหรับระบบ Agent และ Scripts"
+    formats:
+      - name: "Global Knowledge"
+        scope: "global"
+        path: "~/.brain/gks/global/"
+        description: "คลังความรู้ส่วนกลางที่ใช้ร่วมกันทุกโปรเจกต์"
+      - name: "Agent Scratchpad"
+        scope: "global"
+        path: "~/.<agent>/"
+        description: "พื้นที่เก็บข้อมูลชั่วคราวราย Agent"
+      - name: "Agent Index"
+        scope: "project"
+        path: "gks/00_index/"
+        description: "Search index และ Agent-protocol"
+      - name: "MSP Core"
+        scope: "project"
+        path: "msp/"
+        description: "Project Governance, Technical Vision & Standards (SSOT)"
+      - name: "MSP Contracts"
+        scope: "project"
+        path: "msp/LLM_Contract/"
+        description: "Schema contracts สำหรับตรวจสอบความถูกต้องของงาน (Validation layer)"
+      - name: "MSP Rules"
+        scope: "project"
+        path: "msp/rules/"
+        description: "กฎและข้อจำกัดการทำงานเฉพาะโปรเจกต์สำหรับ Agent"
+      - name: "MSP Scripts"
+        scope: "project"
+        path: "scripts/msp/"
+        description: "Scripts สำหรับ index/codegen/validate"
+      - name: "Agent Hooks"
+        scope: "project"
+        path: ".agents/"
+        description: "Project-specific agent skills"
+      - name: "Source Code"
+        scope: "project"
+        path: "src/"
+        description: "ที่เก็บไฟล์ Code ที่ถูกสร้างหรือเขียนขึ้น"
+      - name: "API Blueprint Folder"
+        scope: "project"
+        path: "gks/blueprints/api/"
+        description: "พื้นที่จัดเก็บสัญญา OpenAPI ประจำโปรเจกต์"
+      - name: "MCP SDK Folder"
+        scope: "project"
+        path: ".agents/mcp/"
+        description: "พื้นที่จัดเก็บ MCP SDK สำหรับโปรเจกต์"
+      - name: "Devlog Experiment"
+        scope: "project"
+        path: "gks/14_devlog/experiment/"
+        description: "ที่เก็บผลการรัน Benchmark และ Pilot"
+      - name: "Devlog Incidents"
+        scope: "project"
+        path: "gks/14_devlog/incidents/"
+        description: "Post-mortem reports"
+      - name: "Devlog Reviews"
+        scope: "project"
+        path: "gks/14_devlog/reviews/"
+        description: "Quality and code reviews"
+
+  # ─────────────────────────────────────────────
+  # DOMAIN: Review & Quality
+  # ─────────────────────────────────────────────
+
+  - category: "Review & Quality Identifiers"
+    formats:
+      - name: "Incident ID"
+        format: "MSP-INC-[YYMMDD][TSKSERIAL]-[SERIAL]"
+        path: "gks/14_devlog/incidents/"
+        description: "รหัสการวิเคราะห์ปัญหาหลังเกิดเหตุ (Post-mortem)"
+      - name: "Review ID"
+        format: "MSP-REV-[YYMMDD][TSKSERIAL]-[SERIAL]"
+        path: "gks/14_devlog/reviews/"
+        description: "รหัสการตรวจสอบคุณภาพงาน"
+      - name: "Feedback ID"
+        format: "MSP-FBK-[YYMMDD][TSKSERIAL]-[SERIAL]"
+        path: "gks/14_devlog/reviews/"
+        description: "รหัสข้อเสนอแนะจากการตรวจสอบ"
+      - name: "Attachment ID"
+        format: "MSP-ATT-[YYMMDD][TSKSERIAL]-[SERIAL]"
+        path: "gks/14_devlog/reviews/"
+        description: "รหัสไฟล์แนบประกอบเอกสาร Audit"
+
+  # ─────────────────────────────────────────────
+  # DOMAIN: Identity
+  # ─────────────────────────────────────────────
+
+  - category: "Identity Identifiers"
+    description: "ID สำหรับระบุตัวตนระบบ (Human & AI Agents)"
+    formats:
+      - name: "User ID (Human)"
+        format: "MSP-USR-[NAME]"
+        example: "MSP-USR-BOSS"
+        description: "ID สำหรับมนุษย์ผู้สั่งการหรือตรวจงาน"
+
+      - name: "Agent ID (AI Registry)"
+        format: "MSP-AGT-[CODENAME]-[PLATFORM]"
+        example: "MSP-AGT-RWANG-IDE"
+        description: "ID สำหรับ AI Agent แต่ละตัว — ต้องลงทะเบียนในตาราง Registry ด้านล่าง"
+        registry:
+          # ── Antigravity IDE Agent ─────────────────────
+          MSP-AGT-RWANG-IDE:
+            codename: "RWANG / อาหวัง"
+            platform: "Antigravity IDE (Gemini Flash/Pro, Sonnet, Opus)"
+            role: "Primary Implementer — Feature builds, bug fixes, doc updates"
+            owner: "MSP-USR-BOSS"
+            instructions: "GEMINI.md"
+
+          # ── Claude Cowork Agent ───────────────────────
+          MSP-AGT-EVA-COWORK:
+            codename: "EVA / อีวา"
+            platform: "Claude Cowork (Opus 4.6)"
+            role: "Lead Architect — Planning, blueprints, code review"
+            owner: "MSP-USR-BOSS"
+            instructions: "CLAUDE.md"
+
+# ─────────────────────────────────────────────────────────
+# CASING CONVENTIONS
+# ─────────────────────────────────────────────────────────
+
+casing_conventions:
+
+  - category: "Casing Standards"
+    rules:
+      - name: "Database Columns"
+        case: "snake_case"
+        example: "created_at, session_id"
+
+      - name: "Application Code"
+        case: "camelCase"
+        example: "createdAt, sessionId"
+
+      - name: "Components / Classes"
+        case: "PascalCase"
+        example: "UserDashboard, AgentInstance"
+
+# ─────────────────────────────────────────────────────────
+# ID ORIGIN TABLE
+# ─────────────────────────────────────────────────────────
+
+id_origins:
+
+  - id: "auditId"
+    origin: "Internal"
+    format: "AUD-YYYYMMDD-SERIAL"
+    example: "AUD-20260323-0001"
+    path: "gks/audits/"
+    purpose: "Human-readable audit trail ID สำหรับระบุเหตุการณ์สำคัญใน Log"
+
+  - id: "sessionId"
+    origin: "MSP"
+    format: "MSP-SESS-[YYMMDD][SERIAL]"
+    purpose: "Session identifier ที่เป็นจุดยึดความจำ (Anchor) ข้ามระนาบ"

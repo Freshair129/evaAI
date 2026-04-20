@@ -1,0 +1,85 @@
+# Template: route-handler
+# For generating the async handler body of a Next.js App Router endpoint.
+
+template_id: route-handler
+template_version: 1.0.0
+composer_slot: handler
+
+placeholders:
+  - fn_name                # e.g. mergeHandler
+  - repo_call              # e.g. "mergeTables(ctx.tenantId, data.primary_id, data.children_ids)"
+  - validator_fn           # e.g. validateMergeInput
+  - error_mapper_fn        # e.g. mapRepoErrorToHttp
+
+task_yaml_template: |
+  task_id: {task_id}
+  feature: {feature}
+  concern: "Async handler body that validates, calls repo, maps errors"
+  composer_slot: handler
+  depends_on: [{validator_task}, {mapper_task}]
+
+  output:
+    file: "gks/phase3.5_microtasks/{feature}/_outputs/{task_id}.out.js"
+    exports:
+      - name: {fn_name}
+        kind: function
+
+  prompt:
+    template: |
+      TASK: Write exactly one async JavaScript function `{fn_name}(req, ctx)`.
+
+      INPUTS:
+      - req: object with async method `req.json()` returning parsed body
+      - ctx: object {{ tenantId: string, userId: string, role: string }}
+
+      AVAILABLE (already in scope — do not re-import):
+      - NextResponse (from 'next/server')
+      - {repo_fn} — async, from '@/lib/repositories/{repo_file}'
+      - {validator_fn}(body) — returns {{ ok, error?, data? }}
+      - {error_mapper_fn}(err) — returns {{ status, body }}
+
+      LOGIC (exact):
+      1. const body = await req.json()
+      2. const validation = {validator_fn}(body)
+      3. if (!validation.ok) return NextResponse.json({{ error: validation.error }}, {{ status: 400 }})
+      4. try:
+           const result = await {repo_call}
+           return NextResponse.json({{ ok: true, data: result }}, {{ status: 200 }})
+         catch (err):
+           const mapped = {error_mapper_fn}(err)
+           return NextResponse.json(mapped.body, {{ status: mapped.status }})
+
+      CONSTRAINTS:
+      - Do NOT import anything — all dependencies are assumed in scope
+      - Do NOT declare any other function
+      - Use `export async function {fn_name}(req, ctx)`
+      - Do NOT add logging
+
+      OUTPUT ONLY the function. No markdown fences. No prose. Start directly with `export async function`.
+    inputs: {}
+
+  acceptance_tests:
+    - type: contains
+      rule: "export async function {fn_name}"
+    - type: contains
+      rule: "await req.json()"
+    - type: contains
+      rule: "{validator_fn}"
+    - type: contains
+      rule: "{error_mapper_fn}"
+    - type: not_contains
+      rule: "import "
+    - type: not_contains
+      rule: "require("
+
+  runner:
+    model: "qwen2.5-coder:14b-instruct-q4_K_M"
+    max_retries: 3
+    temperature: 0.0
+    num_ctx: 4096
+
+expected_performance:
+  tokens: 100-150
+  elapsed_s: 4-7
+  tok_per_s: 30-35
+  attempts_to_pass: 1

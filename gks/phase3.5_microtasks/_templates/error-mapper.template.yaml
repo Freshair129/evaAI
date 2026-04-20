@@ -1,0 +1,55 @@
+# Template: error-mapper
+# For generating repo-error → HTTP status/body mapping functions.
+
+template_id: error-mapper
+template_version: 1.0.0
+composer_slot: helpers
+
+placeholders:
+  - fn_name              # e.g. mapRepoErrorToHttp
+  - rules                # list of { match_strings[], status, body_template }
+
+task_yaml_template: |
+  task_id: {task_id}
+  feature: {feature}
+  concern: "Map repository error message to HTTP status + body"
+  composer_slot: helpers
+
+  output:
+    file: "gks/phase3.5_microtasks/{feature}/_outputs/{task_id}.out.js"
+    exports:
+      - name: {fn_name}
+        kind: function
+
+  prompt:
+    template: |
+      TASK: Write exactly one JavaScript function `{fn_name}(err)`.
+
+      INPUT: Error object with a `.message` string.
+      OUTPUT: object {{ status: number, body: {{ error: string }} }}
+
+      RULES (check in order, stop at first match):
+      {rule_lines}
+
+      CONSTRAINTS:
+      - Pure function, no imports, no I/O, no logging
+      - Use `export function`
+      - Use `err.message.includes(...)` for matching
+
+      OUTPUT ONLY the function. No markdown fences. No prose. Start directly with `export function`.
+    inputs: {}
+
+  acceptance_tests:
+    {tests}
+
+  runner:
+    model: "qwen2.5-coder:14b-instruct-q4_K_M"
+    max_retries: 3
+    temperature: 0.0
+    num_ctx: 4096
+
+expected_performance:
+  tokens: 100-150
+  elapsed_s: 4-7
+  tok_per_s: 30-35
+  attempts_to_pass: 1

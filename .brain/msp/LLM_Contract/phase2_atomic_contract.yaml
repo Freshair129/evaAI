@@ -1,0 +1,183 @@
+# Phase 2 Atomic — LLM Write Contract
+# Version: 1.0.0
+# Inspired by: EVA 8.0 / MSP Episodic_LLM_Proposal_Contract.yaml
+# Scope: governs what an LLM agent is allowed to submit into
+#        gks/phase2_atomic/ via MSP inbound queue.
+
+contract:
+  id: phase2_atomic.llm_write_contract
+  version: 1.0.0
+  target_path: "gks/phase2_atomic/"
+  enforced_by: "scripts/msp/validate-atomic-ids.mjs + MSP inbound validator"
+
+# ---------------------------------------------------------------------------
+# SECTION 1 — Identity of the Note
+# An LLM agent MUST provide these on every submission.
+# ---------------------------------------------------------------------------
+required_fields:
+  - id                 # e.g. "ADR-079", "FEAT--pos-kds", "MOD--billing"
+  - type               # one of: architecture_decision | feature | module | protocol | flow
+  - status             # one of: draft | active | deprecated | superseded | partial
+  - summary            # <= 300 chars, single sentence
+  - created_at         # ISO-8601 date (YYYY-MM-DD)
+  - created_by         # "@agent-id" (e.g. "@claude-opus-4-7", "@rwang")
+
+conditional_required:
+  - field: version
+    when: "type in [module, feature, protocol]"
+  - field: module
+    when: "type in [feature, flow]"
+  - field: depends_on
+    when: "type == feature"
+  - field: context_anchor.duration
+    when: "type in [architecture_decision, protocol]"
+  - field: epistemic.confidence
+    when: "type in [architecture_decision, protocol]"
+
+# ---------------------------------------------------------------------------
+# SECTION 2 — Forbidden Fields
+# LLM MUST NOT write these. They are derived or owned by MSP / git / CI.
+# ---------------------------------------------------------------------------
+forbidden_fields:
+  # Identity forgery guard
+  - commit_hash            # derived from git
+  - merge_commit
+  - tenant_id              # runtime-scoped, never in spec
+  - pr_number              # assigned by GitHub
+  - reviewer_approved_at   # assigned by reviewer workflow
+
+  # Authority fields (MSP only)
+  - promotion_level        # L0/L1/L2 — only MSP promotes
+  - validated_at
+  - validated_by
+  - msp_signature
+  - hash
+
+  # Runtime-only metrics (never in static docs)
+  - execution_count
+  - last_error
+  - uptime
+  - latency_p50
+
+  # Fabrication risk: do not invent these
+  - adr_number_override    # ADR number is always sequential; never override
+  - feature_id_override
+  - incident_id            # issued by runbooks/incidents workflow only
+
+# ---------------------------------------------------------------------------
+# SECTION 3 — Field Value Constraints
+# ---------------------------------------------------------------------------
+constraints:
+  id:
+    pattern: "^(ADR-[0-9]{3}|FEAT--[a-z0-9-]+|MOD--[a-z0-9-]+|PROTO--[a-z0-9-]+|FLOW--[a-z0-9-]+)$"
+    case_sensitive: true
+    must_match_filename: true   # id must appear as substring of filename (case-insensitive)
+
+  type:
+    enum:
+      - architecture_decision
+      - feature
+      - module
+      - protocol
+      - flow
+
+  status:
+    enum: [draft, active, deprecated, superseded, partial, stable]
+
+  summary:
+    max_length: 300
+    min_length: 10
+    forbidden_substrings:
+      - "TBD"
+      - "TODO"
+      - "FIXME"
+      - "lorem ipsum"
+
+  depends_on:
+    format: "wikilink_array"   # e.g. ["[[FEAT--multi-tenant]]"]
+    each_must_exist: true       # validator checks link target exists
+
+  epistemic:
+    confidence:
+      type: number
+      min: 0.0
+      max: 1.0
+    source_type:
+      enum:
+        - direct_experience
+        - documented_source
+        - inferred
+        - hypothesis
+
+# ---------------------------------------------------------------------------
+# SECTION 4 — Anti-Hallucination Rules (hard)
+# ---------------------------------------------------------------------------
+anti_hallucination:
+  - rule: "no_dangling_wikilinks"
+    description: "Every [[link]] in body MUST resolve to an existing note in phase2_atomic/ or phase1_docs/"
+    severity: error
+
+  - rule: "no_invented_adr_numbers"
+    description: "If creating new ADR, id must be max(existing ADR numbers) + 1. Agent MUST read gks/00_index/atomic_index.jsonl first to check."
+    severity: error
+
+  - rule: "no_invented_versions"
+    description: "If updating existing note, version may only increment by semver rules. First draft starts at 0.1.0."
+    severity: error
+
+  - rule: "evidence_for_decisions"
+    description: "ADRs MUST include Context + Decision + Consequences sections. Missing any = proposal rejected."
+    severity: error
+
+  - rule: "cite_or_mark_inferred"
+    description: "Any factual claim about code (file paths, line numbers, function names) MUST either (a) reference a phase3_blueprint, or (b) be tagged with `source_type: inferred` + `confidence < 1.0`."
+    severity: warning
+
+# ---------------------------------------------------------------------------
+# SECTION 5 — Submission Envelope (MSP inbound)
+# LLM agents drop proposals into .brain/msp/projects/D--zuri/inbound/
+# The filename pattern is enforced by MSP.
+# ---------------------------------------------------------------------------
+submission:
+  inbound_path: ".brain/msp/projects/D--zuri/inbound/"
+  filename_pattern: "{yyyymmddHHMMSS}-{agent_id}-{proposal_type}-{slug}.md"
+  proposal_types:
+    - new_atomic       # create new file under phase2_atomic/
+    - update_atomic    # modify existing file
+    - supersede        # mark an existing file as superseded and link to replacement
+    - deprecate        # mark as deprecated
+
+  envelope_frontmatter_required:
+    - proposal_id
+    - proposal_type
+    - target_file      # relative path the proposal will land at
+    - submitted_by
+    - submitted_at
+    - rationale
+
+# ---------------------------------------------------------------------------
+# SECTION 6 — Promotion & Rollback
+# ---------------------------------------------------------------------------
+promotion:
+  levels:
+    L0: "In inbound queue, unvalidated"
+    L1: "Schema + anti-hallucination passed"
+    L2: "Human-reviewed and merged to phase2_atomic/"
+  rollback:
+    trigger: "validator fails OR reviewer rejects"
+    action: "move file to .brain/msp/projects/D--zuri/rejected/{date}/ with rejection_reason.md"
+
+# ---------------------------------------------------------------------------
+# SECTION 7 — Escape Hatches
+# ---------------------------------------------------------------------------
+escape_hatches:
+  hotfix:
+    allowed: true
+    requires_tag: "HOTFIX"
+    backfill_deadline_hours: 48
+    example: "CI emergency; backfill ADR within 48h or CI fails on next run"
+
+  legacy_files:
+    allowed: true
+    requires_frontmatter: "legacy: true"
+    explanation: "Pre-contract files exempted from strict validation but flagged in reports"

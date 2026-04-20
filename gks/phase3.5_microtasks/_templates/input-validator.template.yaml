@@ -1,0 +1,59 @@
+# Template: input-validator
+# For generating "validate request body" helper functions.
+# Instantiate by: Gemini or Opus filling {placeholders} from blueprint.
+
+template_id: input-validator
+template_version: 1.0.0
+composer_slot: helpers
+
+placeholders:
+  - fn_name              # e.g. validateMergeInput
+  - fields               # list of { name, type, required, constraint }
+
+task_yaml_template: |
+  task_id: {task_id}
+  feature: {feature}
+  concern: "Validate request body shape for {endpoint}"
+  composer_slot: helpers
+
+  output:
+    file: "gks/phase3.5_microtasks/{feature}/_outputs/{task_id}.out.js"
+    exports:
+      - name: {fn_name}
+        kind: function
+
+  prompt:
+    template: |
+      TASK: Write exactly one JavaScript function `{fn_name}(body)`.
+
+      INPUT: Anything (untrusted request body).
+      OUTPUT: object { ok: boolean, error?: string, data?: {{ ... }} }
+
+      RULES (check in order, stop at first failure):
+      {rules}
+
+      CONSTRAINTS:
+      - Pure function, no imports, no I/O, no logging, no regex
+      - Use `export function`
+      - Do not use any external libraries (no Joi, no Zod, no yup)
+      - No type annotations, no TypeScript
+
+      OUTPUT ONLY the function. No markdown fences. No prose. Start directly with `export function`.
+    inputs: {}
+
+  acceptance_tests:
+    # at least one passing case and one failing case per rule
+    {tests}
+
+  runner:
+    model: "qwen2.5-coder:14b-instruct-q4_K_M"
+    max_retries: 3
+    temperature: 0.0
+    num_ctx: 4096
+
+# Proven success criteria (from FEAT-006 T1 pilot)
+expected_performance:
+  tokens: 200-300
+  elapsed_s: 8-15
+  tok_per_s: 30-35
+  attempts_to_pass: 1

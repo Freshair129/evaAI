@@ -1,0 +1,18 @@
+{
+  "generated_at": "2026-04-18T22:21:17.023Z",
+  "count_by_type": {
+    "adr": 3,
+    "architecture_decision": 22,
+    "protocol": 25,
+    "knowledge": 4,
+    "feature": 14,
+    "flow": 1,
+    "moc": 1,
+    "module": 9
+  },
+  "total_files": 79,
+  "total_bytes": 246660,
+  "duplicates": [],
+  "version": "1.0.0",
+  "last_validation": "2026-04-18T22:21:17.509Z"
+}

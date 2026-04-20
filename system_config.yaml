@@ -1,0 +1,103 @@
+# Created At: 
+# Previous version: 
+# Last Updated: 
+# ═══════════════════════════════════════════════════════════════════════════════
+# SYSTEM_CONFIG.YAML — Master Configuration (Single Source of Truth)
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# RULE: ทุกระบบต้องอ้างอิงค่าจากไฟล์นี้เท่านั้น
+#       ห้าม hardcode ค่าเหล่านี้ในไฟล์อื่น
+#
+# USAGE: 
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+  roles:
+ 
+
+# ─── Tasks ───────────────────────────────────────────────────────────────────
+tasks:
+  priorities:
+    - code: L0
+      label: Critical
+      color: "#ef4444"
+    - code: L1
+      label: High
+      color: "#f97316"
+    - code: L2
+      label: Important
+      color: "#f59e0b"
+    - code: L3
+      label: Routine
+      color: "#3b82f6"
+    - code: L4
+      label: Low
+      color: "#6b7280"
+    - code: L5
+      label: Optional
+      color: "#9ca3af"
+
+  statuses: [PENDING, IN_PROGRESS, DONE, CANCELLED]
+
+  types:
+    - code: SINGLE
+      label: งานวันเดียว
+    - code: RANGE
+      label: งานต่อเนื่อง
+    - code: PROJECT
+      label: โปรเจค
+
+  action_types: [FOLLOW_UP, MEETING, CALL, EMAIL, PURCHASE, REVIEW, OTHER]
+
+  milestone_types: [brief, review, meeting, submit, other]
+
+# ─── Audit ───────────────────────────────────────────────────────────────────
+audit:
+  actions:
+    - 
+
+  statuses: [DONE, PENDING_APPROVAL, APPROVED, REJECTED]
+
+# ─── Notifications ───────────────────────────────────────────────────────────
+notifications:
+  channels: []
+
+
+# ─── Caching & Performance ──────────────────────────────────────────────────
+cache:
+  default_ttl: 300          # seconds (5 min)
+  null_sentinel: "__NULL__"
+
+# ─── API Rate Limits ─────────────────────────────────────────────────────────
+rate_limits:
+  facebook:
+    error_codes: [4, 17, 32, 613]
+    backoff_delays_sec: [60, 120, 240, 480]
+    max_retries: 4
+    batch_size: 50
+
+  qstash:
+    free_tier_daily_messages: 500
+
+  upstash_redis:
+    free_tier_daily_requests: 10000
+
+# ─── UI Theme ────────────────────────────────────────────────────────────────
+theme:
+  colors:
+    gold: "#cc9d37"
+    navy: "#0c1a2f"
+    navy_secondary: "#19273a"
+    text_primary: "#f5f8fb"
+
+  pie_chart_palette:
+    - "#cc9d37"
+    - "#ef4444"
+    - "#3b82f6"
+    - "#10b981"
+    - "#a855f7"
+    - "#f97316"
+    - "#ec4899"
+    - "#06b6d4"
+    - "#6366f1"
+    - "#f59e0b"

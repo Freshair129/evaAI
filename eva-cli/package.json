@@ -1,0 +1,15 @@
+{
+  "name": "eva-agent",
+  "version": "1.0.0",
+  "description": "EVA: Hybrid Architectural Agent (Typhoon + Qwen + Gemma)",
+  "type": "module",
+  "bin": {
+    "eva": "./bin/eva.js"
+  },
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "inquirer": "^9.2.12",
+    "ora": "^7.0.1",
+    "dotenv": "^16.3.1"
+  }
+}

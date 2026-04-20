@@ -1,0 +1,231 @@
+{
+  "main": {
+    "id": "ba89523208e2b8db",
+    "type": "split",
+    "children": [
+      {
+        "id": "2cbe8e56c9f731f9",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "70b7d2c9718512d6",
+            "type": "leaf",
+            "state": {
+              "type": "graph",
+              "state": {},
+              "icon": "lucide-git-fork",
+              "title": "Graph view"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "96c20c958cd02706",
+    "type": "split",
+    "children": [
+      {
+        "id": "67c1c769c28a668b",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "34b21124b71dad72",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "f1b535e38ef15355",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "4fa98a0d99a28c4f",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 200
+  },
+  "right": {
+    "id": "003a86c5a089840b",
+    "type": "split",
+    "children": [
+      {
+        "id": "0c1b1d61f362e2d1",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "f7f1dcbbb9628bbe",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks"
+            }
+          },
+          {
+            "id": "52469822737975dc",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links"
+            }
+          },
+          {
+            "id": "18edc90af3a3de39",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "bdc39290ff9a8f59",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "a61ba5041ebcdb9a",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline"
+            }
+          },
+          {
+            "id": "1a9f0596796ae563",
+            "type": "leaf",
+            "state": {
+              "type": "smart-connections-view",
+              "state": {},
+              "icon": "smart-connections",
+              "title": "Connections"
+            }
+          }
+        ],
+        "currentTab": 5
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false,
+      "smart-connections:Smart Connections: Open connections view": false,
+      "smart-connections:Smart Connections: Open random connection": false,
+      "smart-connections:Smart Lookup: Open lookup view": false
+    }
+  },
+  "active": "70b7d2c9718512d6",
+  "lastOpenFiles": [
+    "14_devlog/experiment/EXP-2026-04-19-phase35-pilot-report.md",
+    "phase1_docs/FINANCIAL_MODEL.md",
+    "phase1_docs/FUNDING_REQUEST.md",
+    "phase2_atomic/ADR-061--split-prisma-schema.md",
+    "phase2_atomic/ADR-060--modular-architecture.md",
+    "phase2_atomic/ADR-059--loyalty-point-idempotency.md",
+    "phase2_atomic/ADR-058--floor-plan-storage-model.md",
+    "phase2_atomic/ADR-057--pos-mobile-ordering-architecture.md",
+    "phase2_atomic/ADR-056--shared-db-multi-tenant.md",
+    "phase2_atomic/ADR-033--identity-resolution.md",
+    "phase2_atomic/ADR-025--nfr-response-strategy.md",
+    "phase2_atomic/flows-index.md",
+    "phase2_atomic/flow--customer-data-fetch.md",
+    "phase2_atomic/PROTO--task-management.md",
+    "phase2_atomic/PROTO--stack-integrations.md",
+    "phase2_atomic/PROTO--stack-endpoints.md",
+    "phase1_docs/tech-stack.md",
+    "phase2_atomic/PROTO--stack-core.md",
+    "phase2_atomic/PROTO--repo-pattern.md",
+    "phase2_atomic/PROTO--rbac-security.md",
+    "phase2_atomic/PROTO--multi-tenancy.md",
+    "phase2_atomic/PROTO--message-routing.md",
+    "phase2_atomic/PROTO--inbox-realtime.md",
+    "phase2_atomic/PROTO--hardware-connection.md",
+    "phase2_atomic/PROTO--gks-v3-architecture.md",
+    "phase2_atomic/PROTO--deployment.md",
+    "phase3_blueprints/FEAT-025_OwnershipTransfer.yaml",
+    "phase3_blueprints/FEAT-024_EmployeeCard.yaml",
+    "phase3_blueprints/FEAT-023_PlatformStrategy.yaml",
+    "phase3_blueprints/FEAT-022_ExpressIntegration.yaml",
+    "phase3_blueprints/FEAT-021_AccountingPlatform.yaml",
+    "phase3_blueprints/FEAT-020_AskMarketing.yaml",
+    "phase3_blueprints/FEAT-019_CRMAIInsights.yaml",
+    "phase3_blueprints/FEAT-018_InboxAIPanel.yaml",
+    "phase3_blueprints/FEAT-017_LINEAgentMode.yaml",
+    "phase3_blueprints/FEAT-016_CampaignEngine.yaml"
+  ]
+}

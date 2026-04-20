@@ -1,0 +1,128 @@
+# Codegen Micro-task — LLM Write Contract
+# Version: 1.0.0
+# Scope: governs what an SLM (Qwen 2.5 Coder) may emit when executing
+#        phase3.5_microtasks/*/T*.task.yaml
+#
+# Pattern inspired by EVA 8.0 LLM Proposal Contracts (forbidden_fields etc)
+
+contract:
+  id: codegen_microtask.llm_write_contract
+  version: 1.0.0
+  target: "phase3.5_microtasks/*/T*.task.yaml"
+  enforced_by: "scripts/msp/runner-microtask.mjs (post-generation gate)"
+
+# ---------------------------------------------------------------------------
+# Universal post-processing (applied before acceptance tests)
+# ---------------------------------------------------------------------------
+post_process:
+  strip_markdown_fences: true        # ```js ... ``` removed
+  strip_leading_commentary: true     # any line before first `export `/`import `/`const ` dropped
+  strip_trailing_commentary: true    # lines after last closing brace dropped
+  normalize_quotes: false            # preserve SLM output; composer normalizes
+  normalize_line_endings: "\n"
+
+# ---------------------------------------------------------------------------
+# Forbidden imports (fabrication prevention)
+# ---------------------------------------------------------------------------
+# If the SLM output contains `import X from 'Y'` where Y is in this list
+# AND Y is not in the host project's package.json dependencies,
+# the task FAILS regardless of acceptance tests.
+forbidden_imports_if_not_in_package_json:
+  - joi
+  - zod
+  - yup
+  - ajv
+  - uuid            # use crypto.randomUUID() instead
+  - lodash
+  - ramda
+  - axios           # use fetch
+  - moment          # use native Date or dayjs if needed
+  - underscore
+  - bluebird        # native Promise
+  - request         # deprecated
+
+# ---------------------------------------------------------------------------
+# Always forbidden (regardless of package.json)
+# ---------------------------------------------------------------------------
+always_forbidden_imports:
+  - "fs"            # micro-tasks are pure — no filesystem
+  - "child_process" # no shell
+  - "net"           # no raw sockets
+  - "http"          # use NextResponse / fetch
+  - "../"           # no relative parent traversal (must be @/ alias)
+
+# ---------------------------------------------------------------------------
+# Always forbidden patterns
+# ---------------------------------------------------------------------------
+always_forbidden_patterns:
+  - pattern: "export default"
+    severity: error
+    reason: "Next.js App Router requires named HTTP method exports (POST/GET/etc)"
+    applies_to: ["T4_route-exports", "any task with composer_slot=exports"]
+
+  - pattern: "req.body"
+    severity: error
+    reason: "Next.js App Router uses `await req.json()` not `req.body`"
+
+  - pattern: "req\\.tenantId"
+    severity: error
+    reason: "tenantId comes from the destructured withAuth context param, not req"
+
+  - pattern: "console\\.(log|debug|info|error|warn)"
+    severity: warning
+    reason: "Route handlers should not log directly. Use Sentry/Pino if needed."
+
+  - pattern: "process\\.env\\."
+    severity: warning
+    reason: "Route-level env access is a smell. Use @/lib/config."
+
+  - pattern: "// TODO|// FIXME|// XXX"
+    severity: error
+    reason: "SLM must not punt. If task can't be done, retry with error feedback."
+
+# ---------------------------------------------------------------------------
+# Required patterns per slot
+# ---------------------------------------------------------------------------
+required_patterns:
+  - slot: exports
+    must_contain: "export const POST ="
+    reason: "Next.js App Router named export"
+
+  - slot: handler
+    must_contain_one_of:
+      - "export async function"
+      - "export const.*= async"
+    reason: "Handler must be async"
+
+  - slot: helpers
+    must_start_with_one_of:
+      - "export function"
+      - "export const"
+    reason: "Helpers must be named exports for composer to pluck"
+
+# ---------------------------------------------------------------------------
+# Retry feedback format
+# ---------------------------------------------------------------------------
+retry_policy:
+  max_retries: 3
+  include_failed_test_in_next_prompt: true
+  include_forbidden_pattern_match: true
+  strip_previous_attempt_from_ctx: true    # start fresh each retry
+  feedback_template: |
+    Your previous attempt failed:
+    {failure_reason}
+
+    Previous output:
+    {previous_output}
+
+    Retry. Follow the rules EXACTLY. {specific_fix_hint}
+
+# ---------------------------------------------------------------------------
+# Escalation rules (to upper tier)
+# ---------------------------------------------------------------------------
+escalation:
+  on_exhausted_retries:
+    action: "gemini-review"
+    command: "node scripts/msp/escalate-to-gemini.mjs {task_id}"
+    fallback: "opus-review"
+    fallback_condition: "gemini also fails or signals framework gap"

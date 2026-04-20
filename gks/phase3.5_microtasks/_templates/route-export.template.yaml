@@ -1,0 +1,61 @@
+# Template: route-export
+# For generating the single-line Next.js App Router POST/GET/PUT/DELETE export.
+
+template_id: route-export
+template_version: 1.0.0
+composer_slot: exports
+
+placeholders:
+  - method                 # POST | GET | PUT | DELETE | PATCH
+  - handler_fn             # e.g. mergeHandler
+
+task_yaml_template: |
+  task_id: {task_id}
+  feature: {feature}
+  concern: "Next.js App Router {method} export wired via withAuth"
+  composer_slot: exports
+  depends_on: [{handler_task}]
+
+  output:
+    file: "gks/phase3.5_microtasks/{feature}/_outputs/{task_id}.out.js"
+    exports:
+      - name: {method}
+        kind: const
+
+  prompt:
+    template: |
+      TASK: Write exactly one line of JavaScript that exports a named constant `{method}`.
+
+      It must be:
+      export const {method} = withAuth({handler_fn})
+
+      AVAILABLE (already in scope — do not re-import):
+      - withAuth — from '@/lib/auth'
+      - {handler_fn} — from handler body
+
+      CONSTRAINTS:
+      - Exactly ONE line (the export statement)
+      - Do NOT add `export default`
+      - Do NOT wrap in try/catch
+      - Do NOT add comments
+
+      OUTPUT ONLY the one line. No markdown fences. No prose.
+    inputs: {}
+
+  acceptance_tests:
+    - type: contains
+      rule: "export const {method} = withAuth({handler_fn})"
+    - type: not_contains
+      rule: "export default"
+
+  runner:
+    model: "qwen2.5-coder:14b-instruct-q4_K_M"
+    max_retries: 3
+    temperature: 0.0
+    num_ctx: 4096
+
+expected_performance:
+  tokens: 10-20
+  elapsed_s: 0.5-1
+  tok_per_s: 30-40
+  attempts_to_pass: 1-2  # sometimes trailing semicolon causes retry
