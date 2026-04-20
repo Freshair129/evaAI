@@ -938,7 +938,30 @@ npm run msp:check       # both above (runs in pre-commit hook)
 # Microtasks (Phase 4)
 npm run msp:codegen <FEAT-ID>    # T1 รัน task YAMLs → _outputs/
 npm run msp:compose <FEAT-ID>    # deterministic join → src/
-node scripts/msp/runner-microtask.mjs <FEAT-ID> <TASK-ID>   # รัน task เดียว
+```
+
+## 15. Migration & Indexing Utilities
+
+เพื่อรองรับการย้ายโปรเจกต์เก่าเข้าสู่มาตรฐาน GKS v3 และการรักษาความถูกต้องของดัชนีความรู้ (Knowledge Index) Framework จึงมีสคริปต์ช่วยเหลือดังนี้:
+
+### 15.1 Re-indexer (Deterministic)
+สคริปต์สำหรับรวบรวม ID จากทุกไฟล์ใน `gks/` มาสร้างเป็นดัชนีรวมเพื่อใช้ในการค้นหาและระบุตัวตนข้าม Agent
+
+- **Location:** `scripts/msp/re-indexer.mjs`
+- **Command:** `node scripts/msp/re-indexer.mjs`
+- **Output:** `gks/00_index/atomic_index.jsonl`
+- **Usage:** รันทุกครั้งเมื่อมีการเพิ่มไฟล์ใหม่ด้วยมือ หรือต้องการซ่อมแซมดัชนีหากเกิด Link เสีย
+
+### 15.2 Legacy Standardizer (AI-Based)
+สคริปต์ที่ใช้พลังของ LLM ในการแปลงเอกสารเก่าที่ไม่มีมาตรฐาน (ไม่มี Frontmatter, ชื่อไฟล์ไม่ถูกต้อง) ให้กลายเป็น Atomic Knowledge ตามมาตรฐาน MSP
+
+- **Location:** `scripts/migration/standardizer.mjs`
+- **Command:** `node scripts/migration/standardizer.mjs <target-folder>`
+- **Workflow:**
+    1. สแกนไฟล์ `.md` ในโฟลเดอร์เป้าหมาย
+    2. ส่งเนื้อหาให้ AI วิเคราะห์ประเภท (Type) และสร้าง Metadata (ID, Phase, Status)
+    3. สร้างไฟล์ใหม่ใน `inbound/` เพื่อรอให้ Human Review ตรวจสอบก่อนส่งเข้า GKS จริง
+- **Safety:** **ห้ามรันแบบ Force Move** เข้า GKS โดยตรง เพื่อป้องกันการเกิด Hallucination ในระดับ Metadata
 node scripts/msp/gen-frontmatter.mjs <file>                  # draft frontmatter
 ```
 
