@@ -1,46 +1,31 @@
 # Skill: Session Checkpoint
 
 > Trigger: จบ session หรือ /checkpoint
-> Purpose: บันทึก progress ก่อนจบ session
+> Purpose: จดบันทึกและบรรจุความทรงจำ (Archive Memory) เพื่อเป็นรอยจารึกให้เซสชันถัดไป
 
 ## Instructions
 
-เมื่อ Boss จะจบ session หรือทุก 3-4 tasks:
+เมื่อจบเซสชัน หรือ Boss สั่ง `/checkpoint`:
 
-1. **อัปเดต MEMORY.md** — เพิ่ม entry ใหม่:
-   ```markdown
-   ## {DATE} — Session N (Claude)
-
-   ### สิ่งที่ทำ
-   - [list completed tasks]
-
-   ### สถานะปัจจุบัน
-   - Phase: X — status
-   - Blocking: [issues if any]
-
-   ### Known Issues
-   - [issues found]
-
-   ### Files Changed
-   - [list of changed files]
+1. **สรุป Action Log:** รวบรวมงานที่ทำเสร็จในเซสชันนี้
+2. **อัปเดต CHANGELOG.md:** 
+   - เพิ่ม Entry ใหม่ตามรูปแบบ: `## [DATE] (SessionID) - Summary`
+   - ระบุไฟล์ที่แก้ไขและ ADR/ID ที่ถูกสร้างขึ้น
+3. **จด Episodic Memory:** สร้าง/อัปเดตสรุปเหตุการณ์ใน `.brain/msp/projects/evaAI/memory/`
+4. **รัน Re-indexer:** เพื่อให้ Index เป็นปัจจุบันที่สุด
+   ```bash
+   node scripts/msp/re-indexer.mjs
    ```
-
-2. **อัปเดต GOAL.md** — check off completed tasks
-
-3. **Verify consistency:**
-   - MEMORY.md matches GOAL.md (no contradictions)
-   - ถ้ามี ADR ใหม่ → listed in MEMORY.md
-   - ถ้ามี gotcha ใหม่ → เพิ่มใน docs/gotchas/
-
-4. **สรุปให้ Boss:**
+5. **สรุปให้ Boss:**
    ```
-   ✅ Checkpoint saved
-   - Completed: X tasks
-   - Remaining: Y tasks
-   - Next session: [recommendation]
+   ✅ Checkpoint Created
+   - Session ID: [ID]
+   - Tasks Completed: [X]
+   - Index Status: Synced
+   - Ready for Push: Yes/No
    ```
 
 ## Rules
-- ห้าม mark task complete ถ้ายังไม่ verify code จริง (G-AI-01)
-- ถ้า session ยาว (>10 tasks) → checkpoint ทุก 3-4 tasks
-- ถ้า Boss บอก "จบ" → ทำ full checkpoint ก่อน
+- ทุก Checkpoint ต้องมี `sessionId` กำกับเสมอ เพื่อความสมบูรณ์ของ Traceability
+- ห้ามปิดเซสชันโดยไม่อัปเดต CHANGELOG (Memory Integrity)
+- หากมี Breaking Change → ต้องไฮไลต์ด้วย [!IMPORTANT] ใน CHANGELOG
