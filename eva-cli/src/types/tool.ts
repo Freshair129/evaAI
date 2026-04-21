@@ -32,7 +32,7 @@ export interface ToolResult<T = unknown> {
 export interface Tool<I = unknown, O = unknown> {
   name: string
   description: string
-  inputSchema: z.ZodSchema<I>
+  inputSchema: z.ZodType<I, z.ZodTypeDef, unknown>
   permission: PermissionLevel
   sideEffect: SideEffect
   execute(input: I, ctx: ToolContext): Promise<ToolResult<O>>
