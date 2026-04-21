@@ -1,0 +1,112 @@
+# Task-based routing matrix
+# Reference: ADR--ROUTING-MATRIX
+
+tasks:
+
+  chat_casual:
+    primary: limbic
+    memory: []
+    maxLatencyMs: 3000
+
+  chat_thai_complex:
+    primary: limbic
+    secondary: cortex
+    cortex_model: sonnet
+    finalize: limbic
+    memory: [atomic]
+    maxLatencyMs: 15000
+
+  plan_architecture:
+    primary: cortex
+    cortex_model: opus
+    finalize: limbic
+    memory: [atomic, vector]
+    maxLatencyMs: 30000
+
+  code_generate:
+    primary: cortex
+    cortex_model: sonnet
+    delegate: motor
+    review: cortex
+    memory: [vector, atomic]
+    maxLatencyMs: 45000
+
+  code_edit:
+    primary: motor
+    memory: [atomic]
+    maxLatencyMs: 20000
+
+  code_review:
+    primary: cortex
+    cortex_model: sonnet
+    memory: [atomic]
+    maxLatencyMs: 20000
+
+  sql_gen:
+    primary: motor
+    validator: cortex
+    cortex_model: haiku
+    memory: [atomic]
+    maxLatencyMs: 15000
+
+  analyze_log:
+    primary: cortex
+    cortex_model: sonnet
+    memory: [episodic]
+    maxLatencyMs: 20000
+
+  knowledge_recall:
+    primary: none           # pure memory retrieval
+    finalize: limbic
+    memory: [episodic, atomic]
+    maxLatencyMs: 5000
+
+  knowledge_search:
+    primary: none
+    finalize: limbic
+    memory: [atomic, vector, obsidian]
+    maxLatencyMs: 5000
+
+  doc_write:
+    primary: cortex
+    cortex_model: sonnet
+    finalize: limbic
+    memory: [atomic]
+    maxLatencyMs: 30000
+
+  write_adr:
+    primary: cortex
+    cortex_model: opus
+    finalize: limbic
+    memory: [atomic]
+    maxLatencyMs: 45000
+
+# Cortex sub-router rules (override cortex_model per task type)
+cortex_selection:
+  rules:
+    - condition: "context_tokens > 50000"
+      use: gemini-pro
+    - condition: "estimated_steps > 5"
+      use: opus
+    - condition: "task.type == 'write_adr'"
+      use: opus
+    - condition: "task.type in ['code_review', 'doc_write']"
+      use: sonnet
+    - condition: "estimated_steps <= 2"
+      use: haiku
+  default: sonnet
+
+# Fallback router used when Limbic classification fails
+fallback:
+  default_task: chat_thai_complex
+  keyword_rules:
+    - match: ["write code", "เขียน.*(function|code|โค้ด)"]
+      task: code_generate
+    - match: ["edit", "แก้ไข"]
+      task: code_edit
+    - match: ["review", "รีวิว"]
+      task: code_review
+    - match: ["plan", "วางแผน", "ออกแบบ"]
+      task: plan_architecture
+    - match: ["ADR", "ตัดสินใจ"]
+      task: write_adr

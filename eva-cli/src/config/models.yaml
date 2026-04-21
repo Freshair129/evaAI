@@ -1,0 +1,79 @@
+# Model registry — เปลี่ยนได้โดยไม่แก้ code
+# Env keys are read via Doppler or .env at runtime
+
+models:
+  opus:
+    provider: anthropic
+    model: claude-opus-4-7
+    envKey: ANTHROPIC_API_KEY
+    maxTokensDefault: 8192
+    contextWindow: 200000
+    thinkingEnabled: true
+    supports: [reasoning, planning, tool_use, long_context]
+
+  sonnet:
+    provider: anthropic
+    model: claude-sonnet-4-6
+    envKey: ANTHROPIC_API_KEY
+    maxTokensDefault: 8192
+    contextWindow: 200000
+    supports: [reasoning, planning, tool_use]
+
+  haiku:
+    provider: anthropic
+    model: claude-haiku-4-5-20251001
+    envKey: ANTHROPIC_API_KEY
+    maxTokensDefault: 4096
+    contextWindow: 200000
+    supports: [planning, tool_use]
+
+  gemini-pro:
+    provider: google
+    model: gemini-2.5-pro
+    envKey: GEMINI_API_KEY
+    maxTokensDefault: 8192
+    contextWindow: 1000000
+    supports: [reasoning, long_context]
+
+  qwen-coder-14b:
+    provider: ollama
+    model: qwen2.5-coder:14b-instruct-q4_K_M
+    endpoint: http://localhost:11434
+    maxTokensDefault: 8192
+    contextWindow: 8192
+    supports: [code_gen, code_edit, sql_gen, unit_test_gen]
+
+  qwen-coder-3b:
+    provider: ollama
+    model: qwen2.5-coder:3b
+    endpoint: http://localhost:11434
+    maxTokensDefault: 4096
+    contextWindow: 8192
+    supports: [code_gen, code_edit]
+
+  typhoon:
+    provider: thaillm
+    model: typhoon-v2.1-8b-instruct
+    envKey: THAILLM_API_KEY
+    endpoint: http://thaillm.or.th/api/typhoon/v1/chat/completions
+    maxTokensDefault: 2048
+    contextWindow: 32000
+    supports: [thai_nlu, intent_extraction, stylize_thai]
+
+  bge-m3:
+    provider: ollama
+    model: bge-m3
+    endpoint: http://localhost:11434
+    supports: []
+    # embedding model — dim 1024
+
+defaults:
+  cortex: sonnet
+  motor: qwen-coder-14b
+  limbic: typhoon
+  embedder: bge-m3
+
+fallback_chain:
+  cortex: [opus, sonnet, gemini-pro, haiku]
+  motor: [qwen-coder-14b, qwen-coder-3b]
+  limbic: [typhoon]

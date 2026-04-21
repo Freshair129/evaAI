@@ -1,0 +1,194 @@
+# ──────────────────────────────────────────────────────────────
+# BLUEPRINT--brains
+# id: BLUEPRINT--brains
+# phase: 3
+# type: blueprint
+# status: raw
+# vault_id: EVA-AGENT-001
+# crosslinks:
+#   derived_from: [CONCEPT--EVA-TRI-BRAIN]
+#   implements: [FRAME--TRI-BRAIN-ARCHITECTURE, ADR--ROUTING-MATRIX]
+# ──────────────────────────────────────────────────────────────
+
+spec_version: "1.0.0"
+target_runtime: "node20+"
+language: "typescript"
+
+# ── Shared interface all brains must implement ───────────────
+brain_adapter_interface:
+  file: "src/brains/types.ts"
+  exports:
+    - name: "BrainAdapter"
+      kind: "interface"
+    - name: "BrainInput"
+      kind: "interface"
+    - name: "BrainChunk"
+      kind: "interface"
+
+  methods:
+    - name: "invoke"
+      signature: "(input: BrainInput) => AsyncIterable<BrainChunk>"
+      must_support_streaming: true
+    - name: "estimateCost"
+      signature: "(input: BrainInput) => Cost"
+
+# ── CORTEX (Reasoning) ───────────────────────────────────────
+cortex:
+  module_file: "src/brains/cortex/index.ts"
+  router_file: "src/brains/cortex/model-router.ts"
+  system_prompt: "src/prompts/cortex.system.md"
+
+  providers:
+    - id: "opus"
+      provider: "anthropic"
+      model: "claude-opus-4-7"
+      env_key: "ANTHROPIC_API_KEY"
+      max_tokens_default: 8192
+      thinking_enabled: true
+      supports:
+        - reasoning
+        - planning
+        - tool_use
+        - long_context
+
+    - id: "sonnet"
+      provider: "anthropic"
+      model: "claude-sonnet-4-6"
+      env_key: "ANTHROPIC_API_KEY"
+      max_tokens_default: 8192
+      supports: [reasoning, planning, tool_use]
+
+    - id: "haiku"
+      provider: "anthropic"
+      model: "claude-haiku-4-5-20251001"
+      env_key: "ANTHROPIC_API_KEY"
+      max_tokens_default: 4096
+      supports: [planning, tool_use]
+
+    - id: "gemini-pro"
+      provider: "google"
+      model: "gemini-2.5-pro"
+      env_key: "GEMINI_API_KEY"
+      max_tokens_default: 8192
+      context_window: 1000000
+      supports: [reasoning, long_context]
+
+  model_selection_rules:
+    - if: "plan.estimated_steps > 5 OR task.type == 'write_adr'"
+      use: "opus"
+    - if: "task.context_tokens > 50000"
+      use: "gemini-pro"
+    - if: "task.type == 'code_review' AND plan.files_changed < 3"
+      use: "sonnet"
+    - if: "task.type in ['quick_plan', 'summarize']"
+      use: "haiku"
+    - default: "sonnet"
+
+  fallback_chain: ["opus", "sonnet", "gemini-pro", "haiku"]
+
+  caching:
+    enable_prompt_cache: true
+    cache_breakpoints:
+      - "system_prompt"
+      - "tool_descriptions"
+      - "retrieved_context"
+
+# ── MOTOR (Code Gen) ─────────────────────────────────────────
+motor:
+  module_file: "src/brains/motor/qwen.ts"
+  system_prompt: "src/prompts/motor.system.md"
+
+  provider: "ollama"
+  endpoint: "http://localhost:11434"
+
+  primary_model:
+    name: "qwen2.5-coder:14b-instruct-q4_K_M"
+    num_ctx: 8192
+    temperature: 0.1
+    vram_budget_gb: 10
+
+  fallback_model:
+    name: "qwen2.5-coder:3b"
+    num_ctx: 8192
+    temperature: 0.1
+    vram_budget_gb: 3
+
+  supports:
+    - code_gen
+    - code_edit
+    - sql_gen
+    - unit_test_gen
+
+  output_constraints:
+    - "output MUST be unified diff or fenced code block"
+    - "NO prose explanation (Cortex ทำหน้าที่นั้น)"
+    - "ถ้าไม่แน่ใจ → emit UNCERTAIN tag ให้ Cortex รีวิว"
+
+# ── LIMBIC (Thai NLU/Style) ──────────────────────────────────
+limbic:
+  module_file: "src/brains/limbic/typhoon.ts"
+  intent_extractor: "src/brains/limbic/intent-extractor.ts"
+  system_prompt: "src/prompts/limbic.system.md"
+
+  provider: "thaillm"
+  endpoint: "http://thaillm.or.th/api/typhoon/v1/chat/completions"
+  env_key: "THAILLM_API_KEY"
+
+  primary_model:
+    name: "typhoon-v2.1-8b-instruct"   # confirm with Boss
+    temperature: 0.4
+    max_tokens: 2048
+
+  functions:
+    - name: "parseIntent"
+      input: "Thai text + recent history"
+      output_schema:
+        type: object
+        required: [taskType, urgency, emotion, rewrittenQuery, confidence]
+
+    - name: "stylize"
+      input: "English/mixed summary"
+      output: "Polite Thai reply"
+
+    - name: "chat"
+      input: "casual Thai"
+      output: "Thai reply"
+
+  intent_taxonomy:
+    source: "ADR--ROUTING-MATRIX#TaskType"
+
+  fallback:
+    - "If API down: keyword regex + default routing"
+    - "If uncertain (confidence < 0.6): ask user to rephrase"
+
+# ── Brain Registry ───────────────────────────────────────────
+registry:
+  file: "src/brains/registry.ts"
+  exports:
+    - name: "getBrain"
+      kind: "function"
+      signature: "(id: BrainId, modelHint?: string) => BrainAdapter"
+    - name: "listBrains"
+      kind: "function"
+
+# ── Prompt Files (to be written) ─────────────────────────────
+prompts:
+  - path: "src/prompts/cortex.system.md"
+    purpose: "สอน Cortex ให้วางแผน + แตก task + เขียน ADR"
+    must_include:
+      - "GKS phase taxonomy (P0-P5)"
+      - "Tool use protocol"
+      - "Output format: Plan YAML"
+
+  - path: "src/prompts/motor.system.md"
+    purpose: "สอน Motor ให้ output โค้ดเป็น diff เท่านั้น"
+    must_include:
+      - "No prose rule"
+      - "TypeScript + repo coding style"
+
+  - path: "src/prompts/limbic.system.md"
+    purpose: "สอน Limbic ให้อ่านเจตนาแฝง + ถอดอารมณ์"
+    must_include:
+      - "TaskType enum"
+      - "Thai politeness register"
+      - "Emotion detection heuristics"
