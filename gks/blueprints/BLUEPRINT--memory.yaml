@@ -1,0 +1,182 @@
+# ──────────────────────────────────────────────────────────────
+# BLUEPRINT--memory
+# id: BLUEPRINT--memory
+# phase: 3
+# type: blueprint
+# status: raw
+# vault_id: EVA-AGENT-001
+# crosslinks:
+#   derived_from: [CONCEPT--EVA-TRI-BRAIN]
+#   implements: [FRAME--TRI-BRAIN-ARCHITECTURE, ADR--FILE-BASED-VECTOR]
+# ──────────────────────────────────────────────────────────────
+
+spec_version: "1.0.0"
+
+layers:
+
+  # ─── 1. GKS Atomic Layer (structured) ─────────────────────
+  atomic:
+    file: "src/memory/gks.ts"
+    source: "gks/00_index/atomic_index.jsonl"
+    read_only: true
+    description: "Structured lookup by ID/phase/type"
+
+    exports:
+      - name: "loadIndex"
+        signature: "() => Promise<AtomicEntry[]>"
+      - name: "lookup"
+        signature: "(id: string) => Promise<AtomicNote | null>"
+      - name: "filter"
+        signature: "(query: { phase?, type?, status?, vault_id? }) => AtomicNote[]"
+
+    hot_reload: true        # watch atomic_index.jsonl mtime
+
+  # ─── 2. Vector Layer (semantic, file-based) ──────────────
+  vector:
+    file: "src/memory/vector/index.ts"
+    embedder_file: "src/memory/vector/embedder.ts"
+    similarity_file: "src/memory/vector/similarity.ts"
+
+    embedder:
+      primary:
+        provider: "ollama"
+        model: "bge-m3"
+        dimension: 1024
+        batch_size: 32
+      fallback:
+        provider: "openai"
+        model: "text-embedding-3-small"
+        dimension: 1536
+        env_key: "OPENAI_API_KEY"
+
+    stores:
+      - name: "atomic"
+        path: ".brain/msp/projects/evaAI/vector/atomic.jsonl"
+        source: "gks/**/*.md"
+        chunk_strategy:
+          by: "heading + max_tokens"
+          max_tokens: 512
+          overlap: 64
+
+      - name: "obsidian"
+        path: ".brain/msp/projects/evaAI/vector/obsidian.jsonl"
+        source: "obsidian_vault_path from config"
+        optional: true
+        respect_excludes: ["*.excalidraw.md", "**/archive/**"]
+
+      - name: "episodic"
+        path: ".brain/msp/projects/evaAI/vector/episodic.jsonl"
+        source: ".brain/msp/projects/evaAI/memory/*.md"
+        chunk_strategy:
+          by: "fixed_tokens"
+          max_tokens: 256
+
+    search:
+      algorithm: "cosine_brute_force"
+      top_k_default: 5
+      score_threshold: 0.35
+
+    rebuild:
+      trigger_script: "scripts/msp/re-embed.mjs"
+      incremental: true       # only re-embed changed files
+      manifest_file: "_manifest.json"
+      manifest_fields:
+        - embedder_model
+        - dimension
+        - doc_count
+        - last_updated
+        - file_hashes
+
+  # ─── 3. Obsidian Layer (live graph) ──────────────────────
+  obsidian:
+    file: "src/memory/obsidian-mcp.ts"
+    transport: "mcp_stdio"
+    server_id: "obsidian-mcp"
+
+    features:
+      - "semantic search via REST plugin"
+      - "backlink traversal"
+      - "tag query"
+      - "resolve [[wikilinks]]"
+
+    caching:
+      ttl_seconds: 120        # Obsidian vault เปลี่ยนไม่บ่อย
+
+  # ─── 4. Episodic Layer (session memory) ──────────────────
+  episodic:
+    file: "src/memory/episodic.ts"
+    consolidator_file: "src/memory/consolidator.ts"
+
+    storage_path: ".brain/msp/projects/evaAI/memory/"
+    file_pattern: "MSP-SESS-{YYMMDD}{SERIAL}.md"
+
+    schema_frontmatter:
+      id: "SESS--..."
+      session_id: "MSP-SESS-..."
+      started_at: "iso"
+      ended_at: "iso"
+      duration_min: "number"
+      participants: ["MSP-USR-BOSS", "MSP-AGT-EVA-COWORK"]
+      tokens_total: "number"
+      cost_usd: "number"
+      tags: ["topic1", "topic2"]
+      linked_atoms: ["CONCEPT--...", "ADR--..."]
+      emotion_summary: "string"
+      outcomes: ["list"]
+
+    consolidation:
+      trigger:
+        - "session ended"
+        - "session > 60 min AND > 30 messages"
+      method: "CORTEX summarize with prompt"
+      output:
+        - "markdown summary → memory/*.md"
+        - "new atomic proposals → .brain/msp/.../inbound/"
+
+# ── Unified Memory Interface ─────────────────────────────────
+memory_store:
+  file: "src/memory/index.ts"
+
+  exports:
+    - name: "MemoryStore"
+      kind: "class"
+      methods:
+        - "retrieve(query, options): Promise<RetrievalResult>"
+        - "search(query, source): Promise<Hit[]>"
+        - "lookup(id): Promise<AtomicNote | null>"
+        - "writeEpisodic(summary): Promise<void>"
+        - "proposeInbound(artifact): Promise<{ path, reviewId }>"
+        - "appendTrace(sessionId, step): Promise<void>"
+
+  retrieval_strategy:
+    default_order:
+      - "atomic (exact ID match)"
+      - "vector (semantic)"
+      - "obsidian (graph + fulltext)"
+      - "episodic (session history)"
+
+    merge_policy:
+      dedup_by: "path or id"
+      rerank: "cosine score + boost if status==stable"
+      max_total: 10
+
+# ── Initialization Flow ──────────────────────────────────────
+init_sequence:
+  on_session_start:
+    - "load atomic_index.jsonl → memory"
+    - "load vector manifest → verify embedder compatibility"
+    - "ping obsidian MCP (non-blocking)"
+    - "if episodic vector missing → warn, continue"
+
+  on_session_end:
+    - "flush trace to disk"
+    - "if consolidation_trigger: run consolidator"
+    - "if new atomic_proposals: write to inbound"
+    - "update session.json → ended"
+
+# ── Write Safety ─────────────────────────────────────────────
+write_rules:
+  - "NEVER write directly to gks/ folders → always via inbound queue"
+  - "NEVER overwrite existing memory/*.md without git-tracked backup"
+  - "vector/*.jsonl can be rebuilt — OK to overwrite"
+  - "session/*.jsonl append-only during active session"

@@ -1,0 +1,233 @@
+# ──────────────────────────────────────────────────────────────
+# BLUEPRINT--tools
+# id: BLUEPRINT--tools
+# phase: 3
+# type: blueprint
+# status: raw
+# vault_id: EVA-AGENT-001
+# crosslinks:
+#   derived_from: [CONCEPT--EVA-TRI-BRAIN]
+#   implements: [FRAME--TRI-BRAIN-ARCHITECTURE]
+# ──────────────────────────────────────────────────────────────
+
+spec_version: "1.0.0"
+
+tool_interface:
+  file: "src/tools/types.ts"
+  exports:
+    - name: "Tool"
+      kind: "interface"
+      shape: |
+        {
+          name: string
+          description: string
+          inputSchema: z.ZodSchema
+          permission: 'auto' | 'confirm' | 'forbidden'
+          sideEffect: 'read' | 'write' | 'exec' | 'network'
+          execute(input, ctx): Promise<ToolResult>
+        }
+
+# ── Tool Registry (MVP set) ──────────────────────────────────
+tools:
+
+  # ─── File System ──────────────────────────────────────────
+  - name: "Read"
+    file: "src/tools/fs/read.ts"
+    description: "Read a file from workspace. Returns content with line numbers."
+    permission: "auto"
+    side_effect: "read"
+    input_schema:
+      file_path: "string (absolute)"
+      offset?: "number"
+      limit?: "number"
+    forbidden_paths:
+      - "**/.env*"
+      - "**/*.pem"
+      - "**/id_rsa*"
+
+  - name: "Write"
+    file: "src/tools/fs/write.ts"
+    description: "Create or overwrite a file. Requires Read first if exists."
+    permission: "confirm"
+    side_effect: "write"
+    input_schema:
+      file_path: "string"
+      content: "string"
+    preconditions:
+      - "if exists: must have called Read on same path in this session"
+
+  - name: "Edit"
+    file: "src/tools/fs/edit.ts"
+    description: "Exact string replacement in file."
+    permission: "confirm"
+    side_effect: "write"
+    input_schema:
+      file_path: "string"
+      old_string: "string (must be unique)"
+      new_string: "string"
+      replace_all?: "boolean"
+
+  - name: "Glob"
+    file: "src/tools/fs/glob.ts"
+    description: "Find files by glob pattern."
+    permission: "auto"
+    side_effect: "read"
+    input_schema:
+      pattern: "string"
+      path?: "string"
+
+  - name: "Grep"
+    file: "src/tools/fs/grep.ts"
+    description: "ripgrep-powered content search."
+    permission: "auto"
+    side_effect: "read"
+    input_schema:
+      pattern: "regex"
+      path?: "string"
+      output_mode?: "content | files_with_matches | count"
+      glob?: "string"
+
+  # ─── Execution ────────────────────────────────────────────
+  - name: "Bash"
+    file: "src/tools/bash.ts"
+    description: "Execute shell command."
+    permission: "confirm"
+    side_effect: "exec"
+    input_schema:
+      command: "string"
+      timeout?: "number"
+      cwd?: "string"
+    blocklist:
+      - "rm -rf /"
+      - "mkfs"
+      - "dd if=.*of=/dev/"
+      - ":(){:|:&};:"           # fork bomb
+      - "curl .* | sh"
+
+  # ─── Knowledge (GKS) ──────────────────────────────────────
+  - name: "GksSearch"
+    file: "src/tools/knowledge/gks-search.ts"
+    description: "Semantic search ใน GKS atomic notes + Obsidian vault"
+    permission: "auto"
+    side_effect: "read"
+    input_schema:
+      query: "string"
+      phase?: "number (0-5)"
+      type?: "concept | adr | flow | entity | ..."
+      top_k?: "number (default 5)"
+
+  - name: "GksLookup"
+    file: "src/tools/knowledge/gks-lookup.ts"
+    description: "ดึง atomic note ตาม id แบบเป๊ะ"
+    permission: "auto"
+    side_effect: "read"
+    input_schema:
+      id: "string"
+
+  - name: "GksPropose"
+    file: "src/tools/knowledge/gks-propose.ts"
+    description: "เสนอ atomic note ใหม่เข้า inbound queue (human review)"
+    permission: "confirm"
+    side_effect: "write"
+    input_schema:
+      kind: "idea | concept | adr | flow | ..."
+      content: "string (markdown with frontmatter)"
+    output:
+      path: ".brain/msp/projects/evaAI/inbound/<id>.md"
+
+  # ─── Obsidian (via MCP + REST) ────────────────────────────
+  - name: "ObsidianSearch"
+    file: "src/tools/knowledge/obsidian-search.ts"
+    description: "Search Obsidian vault via Local REST API plugin"
+    permission: "auto"
+    side_effect: "network"
+    mcp_server: "obsidian-mcp"
+    input_schema:
+      query: "string"
+      top_k?: "number"
+
+  - name: "ObsidianLink"
+    file: "src/tools/knowledge/obsidian-link.ts"
+    description: "เพิ่ม backlink [[wikilink]] ระหว่าง 2 โน้ต"
+    permission: "confirm"
+    side_effect: "write"
+    input_schema:
+      from: "string (note path)"
+      to: "string (note path or [[name]])"
+      section?: "string"
+
+  # ─── Git ──────────────────────────────────────────────────
+  - name: "GitStatus"
+    file: "src/tools/git/status.ts"
+    description: "git status --porcelain"
+    permission: "auto"
+    side_effect: "read"
+
+  - name: "GitDiff"
+    file: "src/tools/git/diff.ts"
+    description: "git diff with optional pathspec"
+    permission: "auto"
+    side_effect: "read"
+
+# ── MCP Integration ──────────────────────────────────────────
+mcp:
+  registry_file: "src/tools/mcp/registry.ts"
+  config_file: ".agents/mcp/servers.yaml"
+
+  servers:
+    - id: "obsidian-mcp"
+      transport: "stdio"
+      command: "npx"
+      args: ["-y", "@obsidian-community/mcp-server"]
+      env:
+        OBSIDIAN_API_KEY: "${OBSIDIAN_API_KEY}"
+        OBSIDIAN_HOST: "http://127.0.0.1:27123"
+      exposes:
+        - "ObsidianSearch"
+        - "ObsidianLink"
+        - "ObsidianRead"
+
+    - id: "github-mcp"
+      transport: "stdio"
+      command: "docker"
+      args: ["run", "-i", "--rm", "ghcr.io/github/github-mcp-server"]
+      optional: true
+
+# ── Permission Matrix ────────────────────────────────────────
+permissions:
+  modes:
+    auto:
+      description: "Run all tools without prompting"
+      use_case: "trusted sandbox, CI"
+    confirm-each:
+      description: "Prompt y/N for every tool with sideEffect != 'read'"
+      use_case: "default (safest)"
+    plan-only:
+      description: "Show plan, execute nothing"
+      use_case: "review before apply"
+
+  default_mode: "confirm-each"
+
+  rules:
+    - tool_pattern: "*"
+      side_effect: "read"
+      default_permission: "auto"
+    - tool_pattern: "Bash"
+      default_permission: "confirm"
+      require_justification: true
+    - tool_pattern: "GksPropose"
+      default_permission: "confirm"
+    - tool_pattern: "Write|Edit"
+      default_permission: "confirm"
+
+# ── Audit Trail ──────────────────────────────────────────────
+audit:
+  log_every_tool_call: true
+  log_file: ".brain/msp/projects/evaAI/logs/tools.jsonl"
+  schema:
+    timestamp: "iso"
+    session_id: "string"
+    tool: "string"
+    args_hash: "sha256"         # ไม่เก็บ args ตรงๆ (อาจมี secret)
+    result_status: "success | fail | denied"
+    latency_ms: "number"
