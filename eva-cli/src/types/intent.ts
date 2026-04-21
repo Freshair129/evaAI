@@ -26,7 +26,7 @@ export interface Intent {
   urgency: Urgency
   emotion: Emotion
   entities: IntentEntity[]
-  hiddenConcerns?: string[]
+  hiddenConcerns?: string[] | undefined
   rewrittenQuery: string
   confidence: number
 }

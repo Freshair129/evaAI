@@ -63,11 +63,11 @@ export interface EvaConfig {
   routing: RoutingConfig
   permissions: PermissionsConfig
   secrets: {
-    anthropicApiKey?: string
-    geminiApiKey?: string
-    thaillmApiKey?: string
-    openaiApiKey?: string
-    obsidianApiKey?: string
+    anthropicApiKey?: string | undefined
+    geminiApiKey?: string | undefined
+    thaillmApiKey?: string | undefined
+    openaiApiKey?: string | undefined
+    obsidianApiKey?: string | undefined
   }
   paths: {
     workspace: string
@@ -95,7 +95,7 @@ export function loadConfig(opts: { workspace?: string; reload?: boolean } = {}):
   const workspace = opts.workspace ?? process.cwd()
   const brainRoot = resolve(workspace, '.brain/msp/projects/evaAI')
 
-  cached = {
+  const next: EvaConfig = {
     models,
     routing,
     permissions,
@@ -117,7 +117,8 @@ export function loadConfig(opts: { workspace?: string; reload?: boolean } = {}):
     },
   }
 
-  return cached
+  cached = next
+  return next
 }
 
 export function getModelSpec(modelId: string) {

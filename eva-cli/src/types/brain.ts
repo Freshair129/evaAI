@@ -17,11 +17,11 @@ export interface ModelSpec {
   id: string
   provider: 'anthropic' | 'google' | 'ollama' | 'thaillm' | 'openai'
   model: string
-  envKey?: string
-  endpoint?: string
-  maxTokensDefault?: number
-  contextWindow?: number
-  thinkingEnabled?: boolean
+  envKey?: string | undefined
+  endpoint?: string | undefined
+  maxTokensDefault?: number | undefined
+  contextWindow?: number | undefined
+  thinkingEnabled?: boolean | undefined
   supports: Capability[]
 }
 
