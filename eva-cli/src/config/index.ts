@@ -58,16 +58,45 @@ export interface PermissionsConfig {
   read_forbidden_paths: string[]
 }
 
+export interface ConnectorsConfig {
+  line: {
+    enabled: boolean
+    webhook_path: string
+    bot_name: string
+  }
+  telegram: {
+    enabled: boolean
+    poll_timeout_sec: number
+    allowed_chat_ids: number[]
+  }
+  server: {
+    port: number
+    host: string
+  }
+  limits: {
+    rate_per_minute: number
+    max_reply_chars: number
+    session_ttl_hours: number
+  }
+  thai_reply: boolean
+}
+
 export interface EvaConfig {
   models: ModelsConfig
   routing: RoutingConfig
   permissions: PermissionsConfig
+  connectors: ConnectorsConfig
   secrets: {
     anthropicApiKey?: string | undefined
     geminiApiKey?: string | undefined
     thaillmApiKey?: string | undefined
     openaiApiKey?: string | undefined
     obsidianApiKey?: string | undefined
+    lineChannelSecret?: string | undefined
+    lineChannelAccessToken?: string | undefined
+    lineBotUserId?: string | undefined
+    telegramBotToken?: string | undefined
+    telegramBotUsername?: string | undefined
   }
   paths: {
     workspace: string
@@ -91,6 +120,9 @@ export function loadConfig(opts: { workspace?: string; reload?: boolean } = {}):
   const permissions = parseYaml(
     readFileSync(resolve(configDir, 'permissions.yaml'), 'utf8'),
   ) as PermissionsConfig
+  const connectors = parseYaml(
+    readFileSync(resolve(configDir, 'connectors.yaml'), 'utf8'),
+  ) as ConnectorsConfig
 
   const workspace = opts.workspace ?? process.cwd()
   const brainRoot = resolve(workspace, '.brain/msp/projects/evaAI')
@@ -99,12 +131,18 @@ export function loadConfig(opts: { workspace?: string; reload?: boolean } = {}):
     models,
     routing,
     permissions,
+    connectors,
     secrets: {
       anthropicApiKey: process.env.ANTHROPIC_API_KEY,
       geminiApiKey: process.env.GEMINI_API_KEY,
       thaillmApiKey: process.env.THAILLM_API_KEY,
       openaiApiKey: process.env.OPENAI_API_KEY,
       obsidianApiKey: process.env.OBSIDIAN_API_KEY,
+      lineChannelSecret: process.env.LINE_CHANNEL_SECRET,
+      lineChannelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
+      lineBotUserId: process.env.LINE_BOT_USER_ID,
+      telegramBotToken: process.env.TELEGRAM_BOT_TOKEN,
+      telegramBotUsername: process.env.TELEGRAM_BOT_USERNAME,
     },
     paths: {
       workspace,

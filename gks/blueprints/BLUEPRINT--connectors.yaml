@@ -1,0 +1,123 @@
+# ──────────────────────────────────────────────────────────────
+# BLUEPRINT--connectors
+# id: BLUEPRINT--connectors
+# phase: 3
+# type: blueprint
+# status: raw
+# vault_id: EVA-AGENT-001
+# crosslinks:
+#   derived_from: [CONCEPT--EVA-MESSAGING-CONNECTORS]
+#   implements: [ADR--CONNECTOR-TRANSPORT, FLOW--INBOUND-MESSAGE]
+# ──────────────────────────────────────────────────────────────
+
+spec_version: "1.0.0"
+
+connector_interface:
+  file: "src/connectors/types.ts"
+  exports:
+    - Connector        (interface)
+    - IncomingMessage  (normalized event)
+    - ConnectorContext (runtime deps)
+
+connectors:
+
+  line:
+    file: "src/connectors/line.ts"
+    transport: webhook
+    inbound_endpoint: "POST /webhook/line"
+    verification: hmac-sha256
+    secrets_required:
+      - LINE_CHANNEL_SECRET
+      - LINE_CHANNEL_ACCESS_TOKEN
+    reply_strategy: "reply_token → push_message fallback"
+    reply_token_ttl_seconds: 60
+    supported_event_types: [message.text]
+
+  telegram:
+    file: "src/connectors/telegram.ts"
+    transport: long_polling
+    poll_timeout_seconds: 25
+    backoff:
+      initial_ms: 2000
+      max_ms: 30000
+      multiplier: 2
+    secrets_required:
+      - TELEGRAM_BOT_TOKEN
+    supported_message_types: [text]
+
+http_server:
+  file: "src/connectors/http-server.ts"
+  module: "node:http (native)"
+  default_port: 3179
+  routes:
+    - "POST /webhook/line → line.handleWebhook"
+    - "GET /health → { status: 'ok' }"
+
+session_map:
+  file: "src/connectors/session-map.ts"
+  key_format: "{platform}:{chatId}"
+  persistence:
+    meta_dir: ".brain/msp/projects/evaAI/connectors/"
+    file: "session-map.json"
+  ttl_hours: 24       # idle session auto-ended
+
+rate_limit:
+  file: "src/connectors/rate-limit.ts"
+  algorithm: sliding_window
+  window_ms: 60000
+  max_per_window: 5
+  scope: per_chat
+
+tool_allowlist:
+  file: "src/connectors/bot-tool-allowlist.ts"
+  allowed_tools:
+    - Read
+    - Glob
+    - Grep
+    - GksSearch
+    - GksLookup
+    - ObsidianSearch
+    - GitStatus
+    - GitDiff
+  denied_tools:
+    - Write
+    - Edit
+    - Bash
+    - GksPropose
+    - ObsidianLink
+  rationale: "Bot ไม่ควรแก้ไฟล์หรือ run command — read-only เท่านั้น"
+
+permission_override:
+  mode: auto
+  confirm_callback: auto_deny
+  rationale: "ไม่มี UI ให้ confirm; denied tools ผ่าน allowlist ก่อนแล้ว"
+
+mention_detection:
+  line:
+    bot_user_id_env: "LINE_BOT_USER_ID"
+    pattern: "@eva|@EVA|@\\{bot_name\\}"
+  telegram:
+    bot_username_env: "TELEGRAM_BOT_USERNAME"
+    pattern: "@{botUsername}"
+    reply_to_bot_message: true
+
+config_file:
+  path: "src/config/connectors.yaml"
+  schema:
+    line:
+      enabled: boolean
+      webhook_path: string (default /webhook/line)
+      reply_include_mention: boolean (default false for 1:1)
+    telegram:
+      enabled: boolean
+      allowed_chat_ids: number[] | null  # null = all
+    server:
+      port: number
+      host: string
+    limits:
+      rate_per_minute: number
+      max_reply_chars: number  # LINE = 5000, TG = 4096
+
+entry_command:
+  usage: "eva serve [--line] [--telegram] [--port N]"
+  file: "src/entry.ts (mode = 'serve')"

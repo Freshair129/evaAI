@@ -5,3 +5,6 @@ coverage/
 .env
 .env.local
 .DS_Store
+
+# Runtime state (sessions, memory, vector, logs) — ephemeral per install
+.brain/

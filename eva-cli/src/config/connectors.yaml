@@ -1,0 +1,23 @@
+# Connector defaults (enable/disable, ports, rate limits)
+# Secrets come from env only (LINE_CHANNEL_SECRET, TELEGRAM_BOT_TOKEN, etc.)
+
+line:
+  enabled: false
+  webhook_path: "/webhook/line"
+  bot_name: "eva"
+
+telegram:
+  enabled: false
+  poll_timeout_sec: 25
+  allowed_chat_ids: []   # empty = allow all
+
+server:
+  port: 3179
+  host: "0.0.0.0"
+
+limits:
+  rate_per_minute: 5
+  max_reply_chars: 4000
+  session_ttl_hours: 24
+
+thai_reply: true
