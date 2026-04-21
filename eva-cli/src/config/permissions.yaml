@@ -1,0 +1,47 @@
+# Permission defaults per tool
+# Reference: BLUEPRINT--tools#permissions
+
+default_mode: confirm-each
+
+modes:
+  auto:
+    description: "Run all tools without prompting"
+    prompt_for: []
+  confirm-each:
+    description: "Prompt for write/exec/network tools"
+    prompt_for: [write, exec, network]
+  plan-only:
+    description: "Never execute, just show plan"
+    prompt_for: [write, exec, network, read]
+
+tool_overrides:
+  Read: auto
+  Glob: auto
+  Grep: auto
+  GksSearch: auto
+  GksLookup: auto
+  GitStatus: auto
+  GitDiff: auto
+
+  Write: confirm
+  Edit: confirm
+  GksPropose: confirm
+  ObsidianLink: confirm
+
+  Bash: confirm
+  ObsidianSearch: auto
+
+forbidden:
+  - pattern: "rm -rf /"
+  - pattern: "mkfs"
+  - pattern: "dd if=.*of=/dev/"
+  - pattern: ":(){:|:&};:"
+  - pattern: "curl .* | sh"
+  - pattern: "wget .* | sh"
+
+read_forbidden_paths:
+  - "**/.env*"
+  - "**/*.pem"
+  - "**/id_rsa*"
+  - "**/*.key"
+  - "**/secrets.yaml"

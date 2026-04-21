@@ -1,15 +1,45 @@
 {
   "name": "eva-agent",
-  "version": "1.0.0",
-  "description": "EVA: Hybrid Architectural Agent (Typhoon + Qwen + Gemma)",
+  "version": "2.0.0-alpha.0",
+  "description": "EVA Tri-Brain Agent — agentic runtime (Cortex/Motor/Limbic) with GKS second-brain",
   "type": "module",
   "bin": {
     "eva": "./bin/eva.js"
   },
+  "scripts": {
+    "dev": "tsx src/ui/app.tsx",
+    "start": "node bin/eva.js",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "reindex": "node ../scripts/msp/re-indexer.mjs",
+    "reembed": "tsx src/scripts/re-embed.ts"
+  },
   "dependencies": {
-    "chalk": "^5.3.0",
-    "inquirer": "^9.2.12",
-    "ora": "^7.0.1",
-    "dotenv": "^16.3.1"
+    "@anthropic-ai/sdk": "^0.40.0",
+    "@google/generative-ai": "^0.24.0",
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "dotenv": "^16.4.5",
+    "ink": "^5.0.1",
+    "ink-spinner": "^5.0.0",
+    "ink-text-input": "^6.0.0",
+    "ollama": "^0.5.11",
+    "react": "^18.3.1",
+    "yaml": "^2.6.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/react": "^18.3.0",
+    "eslint": "^9.0.0",
+    "ink-testing-library": "^4.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   }
 }

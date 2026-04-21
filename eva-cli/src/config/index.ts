@@ -1,0 +1,135 @@
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { dirname, resolve } from 'node:path'
+import { parse as parseYaml } from 'yaml'
+import 'dotenv/config'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+
+export interface ModelsConfig {
+  models: Record<string, {
+    provider: 'anthropic' | 'google' | 'ollama' | 'thaillm' | 'openai'
+    model: string
+    envKey?: string
+    endpoint?: string
+    maxTokensDefault?: number
+    contextWindow?: number
+    thinkingEnabled?: boolean
+    supports: string[]
+  }>
+  defaults: {
+    cortex: string
+    motor: string
+    limbic: string
+    embedder: string
+  }
+  fallback_chain: Record<string, string[]>
+}
+
+export interface RoutingRule {
+  primary: string
+  secondary?: string
+  cortex_model?: string
+  delegate?: string
+  review?: string
+  validator?: string
+  finalize?: string
+  memory: string[]
+  maxLatencyMs: number
+}
+
+export interface RoutingConfig {
+  tasks: Record<string, RoutingRule>
+  cortex_selection: {
+    rules: Array<{ condition: string; use: string }>
+    default: string
+  }
+  fallback: {
+    default_task: string
+    keyword_rules: Array<{ match: string[]; task: string }>
+  }
+}
+
+export interface PermissionsConfig {
+  default_mode: 'auto' | 'confirm-each' | 'plan-only'
+  modes: Record<string, { description: string; prompt_for: string[] }>
+  tool_overrides: Record<string, 'auto' | 'confirm' | 'forbidden'>
+  forbidden: Array<{ pattern: string }>
+  read_forbidden_paths: string[]
+}
+
+export interface EvaConfig {
+  models: ModelsConfig
+  routing: RoutingConfig
+  permissions: PermissionsConfig
+  secrets: {
+    anthropicApiKey?: string
+    geminiApiKey?: string
+    thaillmApiKey?: string
+    openaiApiKey?: string
+    obsidianApiKey?: string
+  }
+  paths: {
+    workspace: string
+    gksRoot: string
+    brainRoot: string
+    sessionsDir: string
+    memoryDir: string
+    vectorDir: string
+    inboundDir: string
+  }
+}
+
+let cached: EvaConfig | null = null
+
+export function loadConfig(opts: { workspace?: string; reload?: boolean } = {}): EvaConfig {
+  if (cached && !opts.reload) return cached
+
+  const configDir = __dirname
+  const models = parseYaml(readFileSync(resolve(configDir, 'models.yaml'), 'utf8')) as ModelsConfig
+  const routing = parseYaml(readFileSync(resolve(configDir, 'routing.yaml'), 'utf8')) as RoutingConfig
+  const permissions = parseYaml(
+    readFileSync(resolve(configDir, 'permissions.yaml'), 'utf8'),
+  ) as PermissionsConfig
+
+  const workspace = opts.workspace ?? process.cwd()
+  const brainRoot = resolve(workspace, '.brain/msp/projects/evaAI')
+
+  cached = {
+    models,
+    routing,
+    permissions,
+    secrets: {
+      anthropicApiKey: process.env.ANTHROPIC_API_KEY,
+      geminiApiKey: process.env.GEMINI_API_KEY,
+      thaillmApiKey: process.env.THAILLM_API_KEY,
+      openaiApiKey: process.env.OPENAI_API_KEY,
+      obsidianApiKey: process.env.OBSIDIAN_API_KEY,
+    },
+    paths: {
+      workspace,
+      gksRoot: resolve(workspace, 'gks'),
+      brainRoot,
+      sessionsDir: resolve(brainRoot, 'sessions'),
+      memoryDir: resolve(brainRoot, 'memory'),
+      vectorDir: resolve(brainRoot, 'vector'),
+      inboundDir: resolve(brainRoot, 'inbound'),
+    },
+  }
+
+  return cached
+}
+
+export function getModelSpec(modelId: string) {
+  const cfg = loadConfig()
+  const spec = cfg.models.models[modelId]
+  if (!spec) throw new Error(`Unknown model: ${modelId}`)
+  return spec
+}
+
+export function requireSecret(key: keyof EvaConfig['secrets']): string {
+  const cfg = loadConfig()
+  const val = cfg.secrets[key]
+  if (!val) throw new Error(`Missing secret: ${key} — set via Doppler or .env`)
+  return val
+}
