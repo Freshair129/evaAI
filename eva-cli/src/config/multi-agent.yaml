@@ -1,13 +1,17 @@
 default_mode: single_shot
 
 mode_rules:
-  - condition: "task.type == 'write_adr' || task.type == 'architecture'"
+  - condition:
+      task_type: [write_adr, plan_architecture]
     mode: debate
     rounds: 3
-  - condition: "task.type == 'code_generate' && has_sub_concern('explain')"
+  - condition:
+      task_type: [code_generate]
+      has_sub_tasks: true
     mode: parallel
-  - condition: "task.type in ['knowledge_search', 'knowledge_recall']"
-    mode: tool_specialized
+  - condition:
+      task_type: [knowledge_search, knowledge_recall]
+    mode: pipeline
     pipeline: default_retrieval_pipeline
 
 confidence_escalation:

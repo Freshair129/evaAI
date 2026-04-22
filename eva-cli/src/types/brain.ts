@@ -44,6 +44,10 @@ export interface BrainInput {
   maxTokens?: number
   temperature?: number
   signal?: AbortSignal
+  /** Enable extended thinking (Opus only). Sets temperature=1 automatically. */
+  enableThinking?: boolean
+  /** Token budget for extended thinking. Default 10_000. */
+  thinkingBudget?: number
 }
 
 export type BrainChunk =

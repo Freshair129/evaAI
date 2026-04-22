@@ -1,34 +1,41 @@
-import { ModeSelector } from '../src/orchestrator/mode-selector.js';
-import { SingleShotExecutor } from '../src/orchestrator/modes/single-shot.js';
-import type { Intent } from '../src/types/intent.js';
+import { describe, it, expect } from 'vitest'
+import { ModeSelector } from '../src/orchestrator/mode-selector.js'
+import type { Intent } from '../src/types/intent.js'
 
-async function testModeSelector() {
-  const selector = new ModeSelector();
-  const intent: Intent = {
-    taskType: 'write_adr',
-    urgency: 'normal',
-    emotion: 'neutral',
-    entities: [],
-    rewrittenQuery: 'write an ADR for multi-agent',
-    confidence: 0.9
-  };
+const makeIntent = (taskType: Intent['taskType'], confidence = 0.9): Intent => ({
+  taskType,
+  urgency: 'normal',
+  emotion: 'neutral',
+  entities: [],
+  rewrittenQuery: taskType,
+  confidence,
+})
 
-  const { mode } = selector.select(intent, 0.9);
-  console.log(`Intent 'write_adr' -> Mode: ${mode} (Expected: debate)`);
-  
-  const intent2: Intent = {
-    taskType: 'chat_casual',
-    urgency: 'normal',
-    emotion: 'neutral',
-    entities: [],
-    rewrittenQuery: 'hello',
-    confidence: 0.9
-  };
-  const { mode: mode2 } = selector.select(intent2, 0.9);
-  console.log(`Intent 'chat_casual' -> Mode: ${mode2} (Expected: single_shot)`);
+describe('ModeSelector', () => {
+  const selector = new ModeSelector()
 
-  const { mode: mode3 } = selector.select(intent2, 0.3);
-  console.log(`Low confidence (0.3) -> Mode: ${mode3} (Expected: debate)`);
-}
+  it('routes write_adr to debate mode', () => {
+    const { mode } = selector.select(makeIntent('write_adr'), 0.9)
+    expect(mode).toBe('debate')
+  })
 
-testModeSelector().catch(console.error);
+  it('routes plan_architecture to debate mode', () => {
+    const { mode } = selector.select(makeIntent('plan_architecture'), 0.9)
+    expect(mode).toBe('debate')
+  })
+
+  it('routes chat_casual to single_shot (default) mode', () => {
+    const { mode } = selector.select(makeIntent('chat_casual'), 0.9)
+    expect(mode).toBe('single_shot')
+  })
+
+  it('routes knowledge_search to pipeline mode', () => {
+    const { mode } = selector.select(makeIntent('knowledge_search'), 0.9)
+    expect(mode).toBe('pipeline')
+  })
+
+  it('forces debate mode on low confidence below threshold', () => {
+    const { mode } = selector.select(makeIntent('chat_casual'), 0.3)
+    expect(mode).toBe('debate')
+  })
+})

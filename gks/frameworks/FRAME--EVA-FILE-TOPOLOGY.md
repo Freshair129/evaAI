@@ -128,7 +128,7 @@ evaAI/
 │   ├── concepts/                      — P1 product/business concepts
 │   │   ├── CONCEPT--EVA-TRI-BRAIN.md
 │   │   ├── CONCEPT--EVA-MESSAGING-CONNECTORS.md
-│   │   └── FEAT01-MULTI-TENANT.md (legacy features)
+│   │   └── (no legacy domain files — removed per FRAMEWORK_MASTER_SPEC §0)
 │   ├── frameworks/                    — P2 architecture frameworks
 │   │   ├── FRAME--TRI-BRAIN-ARCHITECTURE.md
 │   │   └── FRAME--EVA-FILE-TOPOLOGY.md   ← THIS FILE

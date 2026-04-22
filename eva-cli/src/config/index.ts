@@ -81,9 +81,14 @@ export interface ConnectorsConfig {
   thai_reply: boolean
 }
 
+export interface ModeCondition {
+  task_type?: string[]
+  has_sub_tasks?: boolean
+}
+
 export interface MultiAgentConfig {
   default_mode: string
-  mode_rules: Array<{ condition: string; mode: string; rounds?: number; pipeline?: string }>
+  mode_rules: Array<{ condition: ModeCondition; mode: string; rounds?: number; pipeline?: string }>
   confidence_escalation: {
     low_threshold: number
     force_debate_threshold: number

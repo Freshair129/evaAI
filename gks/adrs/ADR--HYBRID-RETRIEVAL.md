@@ -2,7 +2,7 @@
 id: "ADR--HYBRID-RETRIEVAL"
 phase: 2
 type: "adr"
-status: "raw"
+status: "stable"
 vault_id: "EVA-AGENT-001"
 epistemic:
   confidence: 0.80

@@ -2,7 +2,7 @@
 id: "ADR--GKS-ARCHITECTURE"
 phase: 2
 type: "adr"
-status: "raw"
+status: "stable"
 vault_id: "EVA-AGENT-001"
 epistemic:
   confidence: 0.82

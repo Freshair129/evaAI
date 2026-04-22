@@ -1,4 +1,5 @@
 import type { Intent } from '../types/intent.js'
+import type { ModeCondition } from '../config/index.js'
 import { loadConfig } from '../config/index.js'
 import { SingleShotExecutor } from './modes/single-shot.js'
 import { ParallelExecutor } from './modes/parallel.js'
@@ -14,49 +15,32 @@ export class ModeSelector {
     pipeline: new PipelineExecutor()
   }
 
-  select(intent: Intent, confidence: number): { mode: ExecutionMode; executor: ModeExecutor; options: any } {
+  select(intent: Intent, confidence: number): { mode: ExecutionMode; executor: ModeExecutor; options: Record<string, unknown> } {
     const config = loadConfig().multi_agent
-    
-    // Check rules from config
+
     for (const rule of config.mode_rules) {
-      if (this.evaluateCondition(rule.condition, intent)) {
-        return { 
-          mode: rule.mode as ExecutionMode, 
-          executor: this.executors[rule.mode as ExecutionMode],
-          options: { rounds: rule.rounds, pipeline: config.pipelines[rule.pipeline || ''] }
+      if (this.matches(rule.condition, intent)) {
+        const mode = rule.mode as ExecutionMode
+        return {
+          mode,
+          executor: this.executors[mode],
+          options: { rounds: rule.rounds, pipeline: config.pipelines[rule.pipeline ?? ''] }
         }
       }
     }
 
-    // Confidence escalation
     if (confidence < config.confidence_escalation.force_debate_threshold) {
       return { mode: 'debate', executor: this.executors.debate, options: { rounds: 2 } }
     }
 
-    // Default
     const defaultMode = config.default_mode as ExecutionMode
     return { mode: defaultMode, executor: this.executors[defaultMode], options: {} }
   }
 
-  private evaluateCondition(condition: string, intent: Intent): boolean {
-    // Simple condition evaluator
-    // Supports: task.type == '...', task.type in [...], has_sub_concern('...')
-    
-    if (condition.includes('task.type ==')) {
-      const type = condition.match(/'([^']+)'/)?.[1]
-      return intent.taskType === type
+  private matches(condition: ModeCondition, intent: Intent): boolean {
+    if (condition.task_type !== undefined && !condition.task_type.includes(intent.taskType)) {
+      return false
     }
-    
-    if (condition.includes('task.type in')) {
-      const types = (condition.match(/\[([^\]]+)\]/)?.[1] || '').split(',').map(t => t.trim().replace(/'/g, ''))
-      return types.includes(intent.taskType)
-    }
-
-    if (condition.includes('has_sub_concern')) {
-      // Logic for sub-concerns (e.g. from entities or intent facets)
-      return false // placeholder
-    }
-
-    return false
+    return true
   }
 }
