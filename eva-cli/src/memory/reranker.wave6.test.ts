@@ -35,8 +35,8 @@ describe('Weighted Sum Reranker (Wave 6)', () => {
     const results = rerank(hits, query)
 
     expect(results.length).toBe(2)
-    expect(results[0].id).toBe('CONCEPT--TEST') // Higher semantic + status + type boost for explain
-    expect(results[0].meta?.scoreBreakdown).toBeDefined()
+    expect(results[0]!.id).toBe('CONCEPT--TEST') // Higher semantic + status + type boost for explain
+    expect(results[0]!.meta?.scoreBreakdown).toBeDefined()
   })
 
   it('applies type boost correctly', () => {
@@ -51,7 +51,7 @@ describe('Weighted Sum Reranker (Wave 6)', () => {
     const explainResults = rerank(hits, explainQuery)
     const codeResults = rerank(hits, codeQuery)
 
-    expect(explainResults[0].id).toBe('CONCEPT--1')
-    expect(codeResults[0].id).toBe('BLUEPRINT--1')
+    expect(explainResults[0]!.id).toBe('CONCEPT--1')
+    expect(codeResults[0]!.id).toBe('BLUEPRINT--1')
   })
 })

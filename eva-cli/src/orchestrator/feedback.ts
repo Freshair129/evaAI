@@ -1,5 +1,5 @@
 import { AgentStatsStore, type AgentTaskResult } from '../memory/agent-stats.js'
-import type { ModeResult, AgentResponse } from './modes/types.js'
+import type { ModeResult } from './modes/types.js'
 
 export class FeedbackLoop {
   private statsStore = new AgentStatsStore()

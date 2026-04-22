@@ -4,7 +4,7 @@ import { getBrain } from '../../brains/registry.js'
 import { collectText } from '../../lib/streaming.js'
 
 export class SingleShotExecutor implements ModeExecutor {
-  async execute(query: string, intent: Intent, options: any): Promise<ModeResult> {
+  async execute(query: string, _intent: Intent, options: any): Promise<ModeResult> {
     const start = Date.now()
     const brainId = options.brainId || 'cortex'
     const brain = getBrain(brainId)

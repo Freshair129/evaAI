@@ -4,7 +4,7 @@ import { getBrain } from '../../brains/registry.js'
 import { collectText } from '../../lib/streaming.js'
 
 export class DebateExecutor implements ModeExecutor {
-  async execute(query: string, intent: Intent, options: any): Promise<ModeResult> {
+  async execute(query: string, _intent: Intent, options: any): Promise<ModeResult> {
     const start = Date.now()
     const maxRounds = options.rounds ?? 3
     
@@ -19,7 +19,7 @@ export class DebateExecutor implements ModeExecutor {
       
       // Round N: Agent A proposes/revises
       const proposalPrompt = currentAnswer 
-        ? `Revise your previous answer based on the critique.\nOriginal query: ${query}\nPrevious answer: ${currentAnswer}\nCritique: ${agentResponses[agentResponses.length - 1].answer}`
+        ? `Revise your previous answer based on the critique.\nOriginal query: ${query}\nPrevious answer: ${currentAnswer}\nCritique: ${agentResponses[agentResponses.length - 1]?.answer || ''}`
         : query
         
       currentAnswer = await collectText(agentA.invoke({

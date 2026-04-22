@@ -135,6 +135,7 @@ export interface EvaConfig {
     memoryDir: string
     vectorDir: string
     inboundDir: string
+    cacheDir: string
   }
 }
 
@@ -185,6 +186,7 @@ export function loadConfig(opts: { workspace?: string; reload?: boolean } = {}):
       memoryDir: resolve(brainRoot, 'memory'),
       vectorDir: resolve(brainRoot, 'vector'),
       inboundDir: resolve(brainRoot, 'inbound'),
+      cacheDir: resolve(workspace, '.eva/cache'),
     },
   }
 

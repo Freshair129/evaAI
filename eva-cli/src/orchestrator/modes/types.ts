@@ -1,5 +1,4 @@
 import type { Intent } from '../../types/intent.js'
-import type { BrainId } from '../../types/brain.js'
 
 export type ExecutionMode = 'single_shot' | 'parallel' | 'debate' | 'pipeline'
 

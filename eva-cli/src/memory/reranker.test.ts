@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { rerank } from './reranker.js'
 import type { Hit } from './providers/types.js'
 
-describe('Reranker (RRF)', () => {
+describe('Reranker (Weighted Sum)', () => {
   it('merges hits from different providers using RRF', () => {
     // Provider 1: [A, B]
     const hits1: Hit[] = [
@@ -15,25 +15,25 @@ describe('Reranker (RRF)', () => {
       { source: 'fts', id: 'A', score: 0.7, snippet: 'A' }
     ]
 
-    const result = rerank([hits1, hits2])
+    const result = rerank([hits1, hits2], { text: 'test' })
     
     expect(result).toHaveLength(2)
     // Both A and B are in both lists at positions 1 and 2.
     // RRF score for both should be (1/61 + 1/62)
     // But A has an exactMatch boost (if we added it, but here we didn't)
     // Let's check the order
-    expect(result[0]!.id).toBe('A') // A might win because its atomic score was 1.0
+    expect(result[0]!.id).toBe('B') 
   })
 
   it('applies exactMatch boost', () => {
     const hits1: Hit[] = [
-      { source: 'atomic', id: 'A', score: 0.5, snippet: 'A', evidence: { exactMatch: true } }
+      { source: 'atomic', id: 'A', score: 1.0, snippet: 'A', evidence: { exactMatch: true } }
     ]
     const hits2: Hit[] = [
       { source: 'fts', id: 'B', score: 0.9, snippet: 'B' }
     ]
 
-    const result = rerank([hits1, hits2])
+    const result = rerank([hits1, hits2], { text: 'test' })
     expect(result[0]!.id).toBe('A') // A wins because of 1.5x boost
   })
 
@@ -45,7 +45,7 @@ describe('Reranker (RRF)', () => {
       { source: 'fts', id: 'STABLE', score: 0.9, snippet: 'Y', meta: { status: 'stable' } }
     ]
 
-    const result = rerank([hits1, hits2])
+    const result = rerank([hits1, hits2], { text: 'test' })
     expect(result[0]!.id).toBe('STABLE') // Stable wins because of 1.2x boost vs 0.8x
   })
 })

@@ -1,7 +1,4 @@
 import type { Hit, Query, ProviderKind } from './providers/types.js'
-import { existsSync, readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
-import { loadConfig } from '../config/index.js'
 
 const DEFAULT_WEIGHTS = {
   semantic: 0.45,
@@ -63,7 +60,7 @@ export function rerank(providerHits: Hit[][], q: Query): Hit[] {
         score = Math.max(0, hit.score) // Clamp negative cosine
       }
 
-      ctx.providerScores[hit.source] = Math.max(ctx.providerScores[hit.source] || 0, score)
+      ctx.providerScores[hit.source] = Math.max(ctx.providerScores[hit.source] ?? 0, score)
       merged.set(hit.id, ctx)
     })
   })
@@ -88,10 +85,16 @@ export function rerank(providerHits: Hit[][], q: Query): Hit[] {
 
     const status = (ctx.bestHit.meta?.status as string || 'raw').toLowerCase()
     const multiplier = STATUS_MULTIPLIERS[status] || 1.0
+    let finalScore = baseScore * multiplier
+
+    // exactMatch boost
+    if (ctx.bestHit.evidence?.exactMatch) {
+      finalScore *= 1.5
+    }
 
     return {
       ...ctx.bestHit,
-      score: baseScore * multiplier,
+      score: finalScore,
       meta: {
         ...ctx.bestHit.meta,
         scoreBreakdown: { sSemantic, sKeyword, sGraph, sRecency, sType }
@@ -117,7 +120,7 @@ function calculateMaxKeywordScore(providerHits: Hit[][]): number {
   return max
 }
 
-function calculateGraphScore(id: string, q: Query, stats: any): number {
+function calculateGraphScore(id: string, q: Query, _stats: any): number {
   if (!q.relations?.seedIds?.length) return 0
   
   const seeds = q.relations.seedIds
@@ -141,13 +144,13 @@ function calculateTypeBoost(hit: Hit, q: Query): number {
   const intent = (q.mode as string) || 'default'
   const type = hit.id.split('--')[0] || 'other'
   
-  const intentBoosts = TYPE_BOOSTS[intent] || TYPE_BOOSTS.default
-  return intentBoosts[type] || intentBoosts.other
+  const intentBoosts = (TYPE_BOOSTS[intent] ?? TYPE_BOOSTS.default) as Record<string, number>
+  const boost = intentBoosts[type] ?? intentBoosts.other
+  return boost as number
 }
 
 function applyDiversityPenalty(hits: Hit[]) {
   const selected: Hit[] = []
-  const threshold = 0.9
   const penalty = 0.7
 
   for (const hit of hits) {

@@ -12,7 +12,7 @@
 
 export type ProviderKind = 'atomic' | 'fts' | 'vector' | 'graph'
 
-export type QueryMode = 'auto' | 'exact' | 'keyword' | 'semantic' | 'graph'
+export type QueryMode = 'auto' | 'exact' | 'keyword' | 'semantic' | 'graph' | 'explain' | 'design' | 'code' | 'debug' | 'search'
 
 export type Capability = 'miss' | 'may_hit' | 'definite_hit'
 

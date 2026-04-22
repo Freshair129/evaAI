@@ -108,8 +108,10 @@ function filterByTypeCaps(hits: Hit[], q: Query): Hit[] {
 
   for (const h of hits) {
     const type = h.id.split('--')[0] || 'other'
-    counts[type] = (counts[type] || 0) + 1
-    if (counts[type] <= (caps[type] || caps.other)) {
+    const count = (counts[type] || 0) + 1
+    counts[type] = count
+    const limit = caps[type] ?? caps.other
+    if (count <= (limit as number)) {
       result.push(h)
     }
   }

@@ -40,12 +40,20 @@ export class AgentStatsStore {
       .map(l => JSON.parse(l) as AgentTaskResult)
       .filter(l => l.agentId === agentId)
 
-    if (agentLines.length === 0) return this.getStats('default')
+    if (agentLines.length === 0) {
+      return {
+        agentId,
+        successRate: 0.8,
+        p50LatencyMs: 5000,
+        avgCostUsd: 0.01,
+        lastActiveAt: new Date().toISOString()
+      }
+    }
 
     const recent = agentLines.slice(-20) // Rolling window
     const successCount = recent.filter(r => r.success).length
     const latencies = recent.map(r => r.latencyMs).sort((a, b) => a - b)
-    const p50 = latencies[Math.floor(latencies.length / 2)] || 5000
+    const p50 = latencies[Math.floor(latencies.length / 2)] ?? 5000
     const avgCost = recent.reduce((sum, r) => sum + r.costUsd, 0) / recent.length
 
     return {
@@ -53,7 +61,7 @@ export class AgentStatsStore {
       successRate: successCount / recent.length,
       p50LatencyMs: p50,
       avgCostUsd: avgCost,
-      lastActiveAt: recent[recent.length - 1].timestamp
+      lastActiveAt: recent[recent.length - 1]?.timestamp ?? new Date().toISOString()
     }
   }
 }

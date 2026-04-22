@@ -48,8 +48,8 @@ export class ModeSelector {
     }
     
     if (condition.includes('task.type in')) {
-      const types = condition.match(/\[([^\]]+)\]/)?.[1].split(',').map(t => t.trim().replace(/'/g, ''))
-      return types?.includes(intent.taskType) ?? false
+      const types = (condition.match(/\[([^\]]+)\]/)?.[1] || '').split(',').map(t => t.trim().replace(/'/g, ''))
+      return types.includes(intent.taskType)
     }
 
     if (condition.includes('has_sub_concern')) {

@@ -1,5 +1,4 @@
 import { loadConfig } from '../config/index.js'
-import type { Intent } from '../types/intent.js'
 
 export interface AgentStats {
   agentId: string
@@ -10,7 +9,7 @@ export interface AgentStats {
 }
 
 export class AgentScorer {
-  calculateScore(agentId: string, taskType: string, skills: Record<string, number>, stats: AgentStats): number {
+  calculateScore(_agentId: string, taskType: string, skills: Record<string, number>, stats: AgentStats): number {
     const config = loadConfig().multi_agent.scoring.weights
     
     const sSkill = skills[taskType] ?? 0.5
