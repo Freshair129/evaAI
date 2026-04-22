@@ -1,34 +1,40 @@
-import { ModeSelector } from '../src/orchestrator/mode-selector.js';
-import { SingleShotExecutor } from '../src/orchestrator/modes/single-shot.js';
-import type { Intent } from '../src/types/intent.js';
+import { describe, it, expect } from 'vitest'
+import { ModeSelector } from '../src/orchestrator/mode-selector.js'
+import type { Intent } from '../src/types/intent.js'
 
-async function testModeSelector() {
-  const selector = new ModeSelector();
-  const intent: Intent = {
-    taskType: 'write_adr',
+function makeIntent(taskType: Intent['taskType'], confidence = 0.9): Intent {
+  return {
+    taskType,
     urgency: 'normal',
     emotion: 'neutral',
     entities: [],
-    rewrittenQuery: 'write an ADR for multi-agent',
-    confidence: 0.9
-  };
-
-  const { mode } = selector.select(intent, 0.9);
-  console.log(`Intent 'write_adr' -> Mode: ${mode} (Expected: debate)`);
-  
-  const intent2: Intent = {
-    taskType: 'chat_casual',
-    urgency: 'normal',
-    emotion: 'neutral',
-    entities: [],
-    rewrittenQuery: 'hello',
-    confidence: 0.9
-  };
-  const { mode: mode2 } = selector.select(intent2, 0.9);
-  console.log(`Intent 'chat_casual' -> Mode: ${mode2} (Expected: single_shot)`);
-
-  const { mode: mode3 } = selector.select(intent2, 0.3);
-  console.log(`Low confidence (0.3) -> Mode: ${mode3} (Expected: debate)`);
+    rewrittenQuery: 'test',
+    confidence,
+  }
 }
 
-testModeSelector().catch(console.error);
+describe('ModeSelector', () => {
+  const selector = new ModeSelector()
+
+  it('routes write_adr → debate', () => {
+    const { mode } = selector.select(makeIntent('write_adr'), 0.9)
+    expect(mode).toBe('debate')
+  })
+
+  it('routes chat_casual high-confidence → single_shot', () => {
+    const { mode } = selector.select(makeIntent('chat_casual'), 0.9)
+    expect(mode).toBe('single_shot')
+  })
+
+  it('escalates low-confidence to debate', () => {
+    const { mode } = selector.select(makeIntent('chat_casual'), 0.3)
+    expect(mode).toBe('debate')
+  })
+
+  it('returns executor + options alongside mode', () => {
+    const result = selector.select(makeIntent('chat_casual'), 0.9)
+    expect(result.mode).toBeDefined()
+    expect(result.executor).toBeDefined()
+    expect(result.options).toBeDefined()
+  })
+})
