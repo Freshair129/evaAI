@@ -59,6 +59,7 @@ ADR numbering: new ADR id = `max(existing) + 1` — check `atomic_index.jsonl` f
 | `/submit-memory` | Draft an atomic note → MSP inbound (never write `gks/` atomics directly) |
 | `/new-feature` | Scaffold `CONCEPT--`, `ADR--`, `API--` for a new FEAT |
 | `/verify-flow` | Phase-readiness check before P5 (must be 🟢 GO before any code) |
+| `/import-project` | Analyze raw docs/tickets/notes → propose atomics to MSP inbound (batch, with Boss approval step) |
 
 ## Operational commands (via eva-cli)
 
