@@ -14,6 +14,9 @@ import { ToolExecutor } from './tool-executor.js'
 import { bootstrapTools } from '../tools/index.js'
 import { getMemoryStore } from '../memory/index.js'
 import { writeEpisodic } from '../memory/episodic.js'
+import { ModeSelector } from './mode-selector.js'
+import { FeedbackLoop } from './feedback.js'
+import { InsightDetector } from './insight-detector.js'
 
 export type LoopEvent =
   | { type: 'intent'; intent: Intent }
@@ -37,6 +40,10 @@ export interface LoopOptions {
 
 export class AgentLoop {
   private executor: ToolExecutor
+  private modeSelector = new ModeSelector()
+  private feedbackLoop = new FeedbackLoop()
+  private insightDetector = new InsightDetector()
+
   constructor(private opts: LoopOptions) {
     bootstrapTools()
     this.executor = new ToolExecutor(opts.session, opts.permissions)
@@ -113,37 +120,32 @@ export class AgentLoop {
       }
     }
 
-    // ─── PHASE 4: Plan (Cortex or Motor direct) ───────────────
-    if (routing.primary === 'none') {
-      // Pure memory recall — no planning needed
-      const summary = retrievalContext || 'ไม่พบความจำที่เกี่ยวข้อง'
-      const finalReply = routing.finalize
-        ? await this.invokeBrainText(
-            routing.finalize,
-            `สรุปให้ Boss เป็นภาษาไทย:\n\n${summary}`,
-          )
-        : summary
+    // ─── PHASE 4: Multi-Agent Execution ──────────────────────
+    const { mode, executor, options } = this.modeSelector.select(intent, intent.confidence)
+    
+    if (mode !== 'single_shot' || intent.taskType === 'write_adr') {
+      sink({ type: 'message', role: 'agent', content: `[Mode: ${mode}] Orchestrating agents...` })
+      const result = await executor.execute(userInput, intent, { 
+        ...options, 
+        system: retrievalContext,
+        signal 
+      })
+      
+      const finalReply = result.answer
       const msg = appendMessage(session, { role: 'agent', content: finalReply })
       sink({ type: 'message', role: 'agent', content: finalReply })
+      
+      // Feedback & Insights
+      this.feedbackLoop.handleTaskComplete(randomUUID(), result)
+      const insights = this.insightDetector.detect(result)
+      for (const insight of insights) {
+        sink({ type: 'error', message: `Insight: ${insight.description}` })
+      }
+
       return msg.content
     }
 
-    if (routing.primary === 'motor') {
-      const prompt = `${retrievalContext ? retrievalContext + '\n\n' : ''}User request: ${
-        intent.rewrittenQuery
-      }\n\nOriginal: ${userInput}`
-      const code = await this.invokeBrainText('motor', prompt)
-      const finalReply = routing.finalize
-        ? await this.invokeBrainText(
-            routing.finalize,
-            `อธิบายสั้นๆ เป็นภาษาไทยเกี่ยวกับโค้ดนี้ (คงโค้ดไว้):\n\n${code}`,
-          )
-        : code
-      const msg = appendMessage(session, { role: 'agent', content: finalReply })
-      sink({ type: 'message', role: 'agent', content: finalReply })
-      return msg.content
-    }
-
+    // fallback to original planning logic for single_shot
     // primary = cortex
     const planPrompt = buildPlanPrompt(userInput, intent, retrievalContext)
     const cortex = getBrain('cortex', {

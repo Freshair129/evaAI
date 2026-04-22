@@ -280,6 +280,12 @@ id_naming_conventions:
             role: "Primary Implementer — Feature builds, bug fixes, doc updates"
             owner: "MSP-USR-BOSS"
             instructions: "GEMINI.md"
+            skills:
+              planning: 0.75
+              reasoning: 0.70
+              code_gen: 0.90
+              code_edit: 0.95
+              review: 0.75
 
           # ── Claude Cowork Agent ───────────────────────
           MSP-AGT-EVA-COWORK:
@@ -288,6 +294,12 @@ id_naming_conventions:
             role: "Lead Architect — Planning, blueprints, code review"
             owner: "MSP-USR-BOSS"
             instructions: "CLAUDE.md"
+            skills:
+              planning: 0.95
+              reasoning: 0.90
+              code_gen: 0.60
+              thai_nlu: 0.95
+              review: 0.85
 
 # ─────────────────────────────────────────────────────────
 # CASING CONVENTIONS

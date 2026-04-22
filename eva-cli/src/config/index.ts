@@ -81,11 +81,40 @@ export interface ConnectorsConfig {
   thai_reply: boolean
 }
 
+export interface MultiAgentConfig {
+  default_mode: string
+  mode_rules: Array<{ condition: string; mode: string; rounds?: number; pipeline?: string }>
+  confidence_escalation: {
+    low_threshold: number
+    force_debate_threshold: number
+    cache_on_high: number
+    cache_ttl_hours: number
+  }
+  scoring: {
+    weights: {
+      skill_match: number
+      past_success: number
+      latency_pref: number
+      cost_pref: number
+      freshness: number
+    }
+  }
+  budgets: {
+    single_shot_max_ms: number
+    parallel_max_ms: number
+    debate_max_rounds: number
+    debate_max_ms: number
+    pipeline_max_ms: number
+  }
+  pipelines: Record<string, Array<{ role: string; agent: string }>>
+}
+
 export interface EvaConfig {
   models: ModelsConfig
   routing: RoutingConfig
   permissions: PermissionsConfig
   connectors: ConnectorsConfig
+  multi_agent: MultiAgentConfig
   secrets: {
     anthropicApiKey?: string | undefined
     geminiApiKey?: string | undefined
@@ -123,6 +152,9 @@ export function loadConfig(opts: { workspace?: string; reload?: boolean } = {}):
   const connectors = parseYaml(
     readFileSync(resolve(configDir, 'connectors.yaml'), 'utf8'),
   ) as ConnectorsConfig
+  const multi_agent = parseYaml(
+    readFileSync(resolve(configDir, 'multi-agent.yaml'), 'utf8'),
+  ) as MultiAgentConfig
 
   const workspace = opts.workspace ?? process.cwd()
   const brainRoot = resolve(workspace, '.brain/msp/projects/evaAI')
@@ -132,6 +164,7 @@ export function loadConfig(opts: { workspace?: string; reload?: boolean } = {}):
     routing,
     permissions,
     connectors,
+    multi_agent,
     secrets: {
       anthropicApiKey: process.env.ANTHROPIC_API_KEY,
       geminiApiKey: process.env.GEMINI_API_KEY,

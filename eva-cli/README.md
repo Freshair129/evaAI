@@ -49,9 +49,14 @@ doppler run -- eva
 
 ## ✨ ความสามารถหลัก (Key Features)
 
-2.  **Hybrid Memory System (GKS v3)**: ระบบความจำ 4 เลเยอร์ (Atomic, FTS, Vector, Graph) ที่จัดอันดับความสำคัญด้วย RRF (Reciprocal Rank Fusion) เพื่อความแม่นยำสูงสุด
-3.  **Terminal Integration**: EVA สามารถแนะนำคำสั่ง Shell (bash/powershell) และถามเพื่อขออนุญาตรันคำสั่งนั้นให้คุณทันที
-4.  **VRAM Optimized**: ระบบถูกออกแบบมาให้รันลื่นไหลบน VRAM 12GB (Sequential Processing)
+2.  **Hybrid Memory System (GKS v3)**: ระบบความจำ 4 เลเยอร์ที่จัดอันดับความสำคัญด้วย RRF (Reciprocal Rank Fusion) เพื่อความแม่นยำสูงสุด:
+    *   **Atomic**: Exact ID/Title lookup (O(1))
+    *   **FTS**: Full-text search via `ripgrep`
+    *   **Vector**: Semantic search via embeddings (O(log N))
+    *   **Graph**: Relationship-based retrieval (backlinks/neighbors)
+3.  **Provider-based Architecture**: นักพัฒนาสามารถเพิ่ม Provider ใหม่ได้โดยการ implement `RetrievalProvider` interface และลงทะเบียนใน `MemoryStore`.
+4.  **Terminal Integration**: EVA สามารถแนะนำคำสั่ง Shell (bash/powershell) และถามเพื่อขออนุญาตรันคำสั่งนั้นให้คุณทันที
+5.  **VRAM Optimized**: ระบบถูกออกแบบมาให้รันลื่นไหลบน VRAM 12GB (Sequential Processing)
 
 ---
 

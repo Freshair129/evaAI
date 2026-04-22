@@ -36,7 +36,7 @@ export class HybridRetriever {
           
           // Short-circuit if we found a definite hit with high confidence
           if (capability === 'definite_hit' && hits.some(h => (h.score ?? 0) >= 0.95)) {
-            return rerank(resultsByProvider)
+            return rerank(resultsByProvider, q)
           }
         }
       } catch (e) {
@@ -67,6 +67,6 @@ export class HybridRetriever {
     }
 
     // 3. Final Rerank
-    return rerank(resultsByProvider)
+    return rerank(resultsByProvider, q)
   }
 }

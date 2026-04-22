@@ -59,11 +59,16 @@ export class MemoryStore {
     return store
   }
 
+  static warnedRetrieve = false
   /**
    * @deprecated Use resolveContext() for hybrid retrieval.
    * This method now delegates to resolveContext for consistent results.
    */
   async retrieve(query: RetrievalQuery): Promise<RetrievalResult> {
+    if (!MemoryStore.warnedRetrieve) {
+      console.warn('MemoryStore.retrieve() is deprecated. Use resolveContext() instead.')
+      MemoryStore.warnedRetrieve = true
+    }
     const start = Date.now()
     
     // Convert old RetrievalQuery to new Query

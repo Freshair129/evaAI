@@ -30,11 +30,13 @@ export const gksSearchTool: Tool<GksSearchInput, GksSearchOutput> = {
     try {
       const parsed = inputSchema.parse(input)
       const store = getMemoryStore()
-      const result = await store.retrieve({
+      const hits = await store.resolveContext({
         text: parsed.query,
-        sources: ['atomic', 'vector'],
-        topK: parsed.top_k,
-        filter: {
+        mode: 'auto',
+        budget: {
+          maxHits: parsed.top_k,
+        },
+        filters: {
           ...(parsed.phase !== undefined && { phase: parsed.phase }),
           ...(parsed.type !== undefined && { type: parsed.type }),
         },
@@ -42,9 +44,9 @@ export const gksSearchTool: Tool<GksSearchInput, GksSearchOutput> = {
       return {
         status: 'success',
         data: {
-          hits: result.hits,
-          totalScanned: result.totalScanned,
-          latencyMs: result.latencyMs,
+          hits: hits as any, // Cast for legacy Hit compatibility
+          totalScanned: 0, // No longer tracked per-provider
+          latencyMs: Date.now() - start,
         },
         latencyMs: Date.now() - start,
       }
