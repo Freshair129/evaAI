@@ -8,8 +8,8 @@ epistemic:
   confidence: 0.80
   source_type: "inference"
 crosslinks:
-  derived_from: ["ADR--KOS-ARCHITECTURE"]
-  implements: ["ADR--KOS-ARCHITECTURE"]
+  derived_from: ["ADR--GKS-ARCHITECTURE"]
+  implements: ["ADR--GKS-ARCHITECTURE"]
   supersedes: ["ADR--FILE-BASED-VECTOR"]
   used_by: []
 ---
@@ -24,7 +24,7 @@ crosslinks:
 
 ## Context
 
-`ADR--KOS-ARCHITECTURE` กำหนดให้มี abstraction layer และ pluggable providers แต่ยังไม่ได้ลงรายละเอียด **retrieval pipeline**
+`ADR--GKS-ARCHITECTURE` กำหนดให้มี abstraction layer และ pluggable providers แต่ยังไม่ได้ลงรายละเอียด **retrieval pipeline**
 
 ปัจจุบัน `MemoryStore.retrieve()` ทำงานแบบ:
 1. Atomic: substring match ที่ `id`/`path`
