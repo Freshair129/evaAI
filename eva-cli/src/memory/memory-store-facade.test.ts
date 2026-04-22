@@ -18,7 +18,7 @@ describe('MemoryStore facade — T2 Wave 0', () => {
   it('constructs with no args (legacy shape still works)', () => {
     const store = new MemoryStore()
     expect(store).toBeDefined()
-    expect(store.providers).toEqual([])
+    expect(store.providers.length).toBeGreaterThanOrEqual(4)
   })
 
   it('accepts providers array via options', () => {
@@ -28,14 +28,13 @@ describe('MemoryStore facade — T2 Wave 0', () => {
     expect(store.providers[0]!.kind).toBe('atomic')
   })
 
-  it('legacy retrieve() still works and ignores providers (Wave 0 behavior)', async () => {
+  it('legacy retrieve() now delegates to providers (Wave 2 logic)', async () => {
     const mock = makeMockProvider()
     const store = new MemoryStore({ providers: [mock] })
     const result = await store.retrieve({ text: 'anything', topK: 3 })
-    // Providers are not yet consulted; retrieve uses legacy atomic+vector+episodic
-    // (It may return 0 or more hits depending on repo state — just shape check)
-    expect(Array.isArray(result.hits)).toBe(true)
-    expect(typeof result.latencyMs).toBe('number')
+    // retrieve now delegates to resolveContext -> providers
+    expect(result.hits).toHaveLength(1)
+    expect(result.hits[0]!.id).toBe('TEST--1')
   })
 
   it('exposes providers field as readonly-ish (runtime: still a regular array)', () => {

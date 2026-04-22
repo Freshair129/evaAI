@@ -1,15 +1,14 @@
 import type {
   EpisodicMemory,
-  Hit,
   RetrievalQuery,
   RetrievalResult,
   AtomicNote,
 } from '../types/memory.js'
 import { loadIndex, lookup, readNote } from './gks.js'
 import { VectorStore, type StoreName } from './vector/index.js'
-import { writeEpisodic, readEpisodic, listEpisodic } from './episodic.js'
+import { writeEpisodic, readEpisodic } from './episodic.js'
 import { proposeInbound, type InboundArtifact, type InboundResult } from './inbound.js'
-import { getObsidianClient } from './obsidian-mcp.js'
+// import { getObsidianClient } from './obsidian-mcp.js'
 import { 
   type RetrievalProvider, 
   type Query, 
@@ -32,8 +31,6 @@ export interface MemoryStoreOptions {
 
 export class MemoryStore {
   private vectors = new Map<StoreName, VectorStore>()
-  private enableObsidian: boolean
-  private vectorSources: StoreName[]
   private hybrid: HybridRetriever
 
   /**
@@ -42,9 +39,6 @@ export class MemoryStore {
   readonly providers: RetrievalProvider[]
 
   constructor(opts: MemoryStoreOptions = {}) {
-    this.enableObsidian = opts.enableObsidian ?? false
-    this.vectorSources = opts.vectorSources ?? ['atomic', 'episodic']
-    
     // If no providers provided, use defaults
     this.providers = opts.providers || [
       new AtomicIndexProvider(),

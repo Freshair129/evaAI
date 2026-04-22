@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { HybridRetriever } from './hybrid-retriever.js'
-import type { RetrievalProvider, Query, Hit } from './providers/types.js'
+import type { RetrievalProvider, Query } from './providers/types.js'
 
 describe('HybridRetriever', () => {
   const mockAtomic: RetrievalProvider = {
@@ -27,7 +27,7 @@ describe('HybridRetriever', () => {
     const hits = await retriever.resolve({ text: 'EXACT' })
     
     expect(hits).toHaveLength(1)
-    expect(hits[0].id).toBe('EXACT')
+    expect(hits[0]!.id).toBe('EXACT')
     expect(atomicSpy).toHaveBeenCalled()
     expect(vectorSpy).not.toHaveBeenCalled() // Short-circuit worked
   })
@@ -59,12 +59,10 @@ describe('HybridRetriever', () => {
     const retriever = new HybridRetriever([mockAtomic, slowProvider])
     
     // Set a very tight budget
-    const start = Date.now()
     const hits = await retriever.resolve({ 
       text: 'something', 
       budget: { maxLatencyMs: 10 } 
     })
-    const duration = Date.now() - start
     
     expect(hits.every(h => h.id !== 'SLOW')).toBe(true)
   })

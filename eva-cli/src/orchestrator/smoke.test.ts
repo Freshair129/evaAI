@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { AgentLoop } from './loop.js'
 import { getMemoryStore } from '../memory/index.js'
-import { getBrain } from '../brains/registry.js'
 
 vi.mock('../brains/registry.js', () => ({
   getBrain: vi.fn(() => ({

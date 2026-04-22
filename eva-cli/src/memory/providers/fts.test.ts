@@ -25,7 +25,7 @@ describe('RipgrepFtsProvider', () => {
 
   it('runs JS fallback when ripgrep is missing', async () => {
     // Mock spawn to fail (ripgrep not found)
-    vi.spyOn(cp, 'spawn').mockImplementation((cmd, args) => {
+    vi.spyOn(cp, 'spawn').mockImplementation((_cmd, _args) => {
       const emitter = {
         on: vi.fn((event, cb) => {
           if (event === 'error') cb(new Error('spawn rg ENOENT'))
