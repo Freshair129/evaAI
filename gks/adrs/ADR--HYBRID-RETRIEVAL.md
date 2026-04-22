@@ -139,26 +139,45 @@ interface Hit {
 
 ### Reranking algorithm
 
-Use **Reciprocal Rank Fusion (RRF)** — proven in information retrieval:
+**Weighted sum** (detail spec → `ADR--SCORING-FORMULA`):
 
 ```
-rrf_score(doc) = Σ over providers P: 1 / (k + rank_P(doc))
-where k = 60 (standard constant)
+finalScore =
+    w_semantic * S_semantic
+  + w_keyword  * S_keyword
+  + w_graph    * S_graph
+  + w_recency  * S_recency
+  + w_type     * S_typeBoost
 ```
 
-Then apply **boosts**:
+Default weights (initial, tunable):
+
+| Component | Weight |
+|---|---|
+| semantic | 0.45 |
+| keyword | 0.20 |
+| graph | 0.20 |
+| recency | 0.10 |
+| type | 0.05 |
+
+**Post-rank penalties**:
+- **Diversity penalty**: if doc.cosine vs already-selected > 0.9 → score *= 0.7
+- **Status boost** (applied multiplicatively after weighted sum):
+  - `stable` → * 1.1
+  - `deprecated` → * 0.6
+
+**Graph score breakdown** (เพราะ graph score เป็น composite อยู่แล้ว):
 ```
-final_score = rrf_score
-            * (1.5 if evidence.exactMatch else 1.0)
-            * (1.2 if meta.status == 'stable' else 1.0)
-            * (0.8 if meta.status == 'deprecated' else 1.0)
-            * (1.3 if meta.phase matches query.filters.phase else 1.0)
+S_graph = 0.6 * direct_link + 0.3 * shared_neighbors + 0.1 * centrality
 ```
 
-Why RRF > weighted sum:
-- ไม่ต้อง normalize score ข้าม provider (scales different)
-- Resilient ต่อ provider ที่ noisy
-- Standard ในงาน IR (Elasticsearch, Vespa ใช้)
+Why weighted sum > RRF สำหรับเคสเรา:
+- Integrate signals ที่ไม่ใช่ rank ได้ง่าย (recency, type boost)
+- Tune ได้ manually เพราะ atom จำนวนน้อย (~500)
+- Graph score มี sub-components ที่ weighted sum expose ได้
+- RRF เหมาะกับ retrieval systems ใหญ่ที่มี provider score scale ต่างกันมาก — ของเรา normalize ได้ก่อน
+
+**Full formula + examples** → `ADR--SCORING-FORMULA`
 
 ---
 
@@ -257,10 +276,12 @@ class HybridRetriever {
 - ❌ Miss paraphrase, semantic intent
 - ❌ No graph query
 
-### C. Weighted sum merge (instead of RRF)
-- ✅ Simple formula
-- ❌ Requires careful score normalization per provider
-- ❌ Brittle ถ้า provider สูตรเปลี่ยน
+### C. RRF (Reciprocal Rank Fusion)
+- ✅ No score normalization needed
+- ✅ Industry standard (Elasticsearch, Vespa)
+- ❌ ผสม non-rank signals (recency/type) ไม่ flexible
+- ❌ Tune hard-score manually ยากกว่า
+- ⚠️ Revisit ถ้าเกิน 10k atoms หรือ provider score scale เพี้ยน
 
 ### D. Learned-to-rank (LTR)
 - ✅ Potentially best precision
@@ -268,11 +289,13 @@ class HybridRetriever {
 - ❌ Needs training data we don't have
 - ⚠️ Revisit ถ้าเกิน 5k atoms
 
-### E. Hybrid 4-provider + RRF (chosen)
+### E. Hybrid 4-provider + Weighted Sum (chosen)
 - ✅ Covers all query types (exact/keyword/semantic/graph)
-- ✅ RRF well-understood, no normalization needed
+- ✅ Weighted sum = explicit control, easy to add recency/type
 - ✅ Budget + cascade = latency predictable
+- ✅ Graph sub-components (direct/shared/centrality) exposed
 - ❌ Complexity สูงขึ้น
+- ❌ ต้อง normalize score ข้าม provider ก่อน weighted sum
 - ❌ Tests เพิ่ม ~30 cases
 
 ---

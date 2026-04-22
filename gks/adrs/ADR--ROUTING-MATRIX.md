@@ -139,3 +139,30 @@ tasks:
     memory: [vector, gks_search]
     max_latency_ms: 30000
 ```
+
+---
+
+## Evolution — Score-based Routing + Multi-agent Modes
+
+**Status**: this ADR (rule-based) is the **v1 baseline**. Full multi-agent routing is specified in `ADR--MULTI-AGENT-MODES`.
+
+### What this ADR covers (v1)
+- 1-dim routing: `TaskType → (primary brain + memory sources + latency budget)`
+- Deterministic table lookup
+- Single-shot execution
+
+### What `ADR--MULTI-AGENT-MODES` adds (v2)
+- **4 execution modes**: single-shot / parallel / debate / tool-specialized
+- **Score-based agent selection** (within a chosen brain, pick between RWANG vs EVA-Cowork etc.)
+- **Confidence escalation**: low confidence → retry with stronger agent or debate
+- **Feedback loop**: `/msp/task.complete` updates agent stats → informs future routing
+
+### Compatibility
+- v1 table stays as **default fallback** when v2 selector doesn't override
+- v2 selector reads same `routing.yaml` + extends with mode rules
+- Rollout: v1 shipped (MVP merge); v2 opt-in via `.eva/settings.yaml > multi_agent.default_mode`
+
+### When v2 supersedes v1
+- When `agent-stats.jsonl` has ≥ 100 entries per active agent (enough data for `S_past_success`)
+- When at least 2 active agents registered (currently EVA-Cowork only; RWANG pending)
+- Until then, v2 modes fire only on explicit task type rules (e.g., `write_adr` → debate)
