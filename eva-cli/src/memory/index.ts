@@ -10,20 +10,33 @@ import { VectorStore, type StoreName } from './vector/index.js'
 import { writeEpisodic, readEpisodic, listEpisodic } from './episodic.js'
 import { proposeInbound, type InboundArtifact, type InboundResult } from './inbound.js'
 import { getObsidianClient } from './obsidian-mcp.js'
+import type { RetrievalProvider } from './providers/types.js'
 
 export interface MemoryStoreOptions {
   enableObsidian?: boolean
   vectorSources?: StoreName[]
+  /**
+   * Optional array of RetrievalProvider implementations. Reserved for Wave 1+
+   * of MSP-IMP-260421001 (KOS hybrid retrieval). Currently stored but not
+   * consulted — `retrieve()` uses the legacy path to preserve backward compat.
+   */
+  providers?: RetrievalProvider[]
 }
 
 export class MemoryStore {
   private vectors = new Map<StoreName, VectorStore>()
   private enableObsidian: boolean
   private vectorSources: StoreName[]
+  /**
+   * Providers array — wired in Wave 0 (T2) but not yet consumed by retrieve().
+   * HybridRetriever (T7) will read from this in a later wave.
+   */
+  readonly providers: RetrievalProvider[]
 
   constructor(opts: MemoryStoreOptions = {}) {
     this.enableObsidian = opts.enableObsidian ?? false
     this.vectorSources = opts.vectorSources ?? ['atomic', 'episodic']
+    this.providers = opts.providers ?? []
   }
 
   private getVectorStore(name: StoreName): VectorStore {
@@ -151,3 +164,17 @@ export { writeEpisodic, readEpisodic, listEpisodic } from './episodic.js'
 export { proposeInbound } from './inbound.js'
 export { loadIndex, lookup, filterIndex, searchByText } from './gks.js'
 export { parseFrontmatter } from './frontmatter.js'
+export type {
+  RetrievalProvider,
+  Query,
+  Hit as ProviderHit,
+  QueryMode,
+  Capability,
+  ProviderHealth,
+  SearchOpts,
+  QueryFilters,
+  QueryRelations,
+  QueryBudget,
+  HitEvidence,
+  ProviderKind,
+} from './providers/types.js'
