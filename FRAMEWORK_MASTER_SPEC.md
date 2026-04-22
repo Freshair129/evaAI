@@ -949,14 +949,42 @@ Obsidian คือเครื่องมือหลัก (Primary UI) ที
 - **Model Context Protocol (MCP):** เพื่อให้ AI Agent สามารถเข้าถึงความรู้ใน Vault ได้แบบคำนึงถึงบริบท (Contextual Access)
 - **Graph View:** ใช้สำหรับตรวจสอบ "กำพร้าความรู้" (Orphaned Knowledge) — หากโหนดใดไม่มีเส้นเชื่อมต่อ แสดงว่าความรู้นั้นไม่ได้พิสูจน์ที่มา
 
-### 12.5 Configuration Sharing
-เพื่อให้มาตรฐาน UI เหมือนกันทุกโปรเจกต์ โฟลเดอร์ `.obsidian/` (Plugins, Appearance, Settings) จะถูกเก็บไว้ใน Git ยกเว้นไฟล์ส่วนบุคคล (Personal Cache/Workspace)
+---
+
+## 13. Hybrid Retrieval System (The Agent's Eyes)
+
+เพื่อให้ Agent สามารถค้นหาความรู้จาก GKS ได้อย่างแม่นยำและรวดเร็ว ระบบจึงใช้การสืบค้นแบบ **Hybrid Retrieval (4-Layer Pipeline)**
+
+### 13.1 ชั้นการสืบค้น (Retrieval Layers)
+
+| ชั้น (Layer) | เทคนิค (Technique) | ความเหมาะสม | ความคุ้มค่า (Cost) |
+|---|---|---|---|
+| **1. Atomic** | O(1) Exact ID Match | เมื่อระบุ ID ชัดเจน (เช่น ADR--001) | ต่ำมาก |
+| **2. FTS** | Full-Text Search (Ripgrep) | ค้นหาด้วย Keyword ทั่วทั้งไฟล์ | ต่ำ |
+| **3. Vector** | Semantic Search (Embeddings) | ค้นหาด้วยความหมายหรือบริบทที่ใกล้เคียง | ปานกลาง |
+| **4. Graph** | Relationship Traversal | ค้นหาไฟล์ที่เกี่ยวข้องผ่าน Backlinks/Forward links | ปานกลาง |
+
+### 13.2 การประมวลผล (Orchestration)
+1.  **Cheap Cascade:** เริ่มค้นจาก Atomic และ FTS ก่อน หากเจอผลลัพธ์ที่มีความมั่นใจสูง (Exact Match) ระบบจะหยุดค้น (Short-circuit) เพื่อประหยัด Token
+2.  **Parallel Dispatch:** หากไม่เจอในชั้นแรก ระบบจะส่ง Query ไปยัง Vector และ Graph พร้อมกันภายใต้เวลาที่กำหนด (Latency Budget)
+3.  **RRF Reranking:** นำผลลัพธ์จากทุก Provider มาจัดลำดับความสำคัญใหม่ด้วยอัลกอริทึม **Reciprocal Rank Fusion (RRF)**
+4.  **Metadata Boost:** ปรับคะแนนตามสถานะไฟล์ (เช่น ไฟล์ `Stable` ได้คะแนนสูงกว่า `Deprecated`)
+
+### 13.3 ดัชนีความรู้ (Indexing)
+- **Automatic Indexing:** ทุกครั้งที่มีการแก้ไข GKS ต้องรัน `npm run msp:index` เพื่อปรับปรุง `atomic_index.jsonl`
+- **Validation:** ใช้ `npm run msp:validate` เพื่อตรวจสอบ Link เสียและความถูกต้องของกฎก่อนทำการ Index
 
 ---
 
-## 13. Operational Commands (Template)
+## 14. Glossaries & SSOT
 
-### 13.1 MSP / GKS commands (บังคับมี)
+- **Configuration Sharing:** เพื่อให้มาตรฐาน UI เหมือนกันทุกโปรเจกต์ โฟลเดอร์ `.obsidian/` (Plugins, Appearance, Settings) จะถูกเก็บไว้ใน Git ยกเว้นไฟล์ส่วนบุคคล (Personal Cache/Workspace)
+
+---
+
+## 15. Operational Commands (Template)
+
+### 15.1 MSP / GKS commands (บังคับมี)
 
 ```bash
 npm run msp:index       # rebuild L0 atomic index
@@ -968,11 +996,11 @@ npm run msp:codegen <FEAT-ID>    # T1 รัน task YAMLs → _outputs/
 npm run msp:compose <FEAT-ID>    # deterministic join → src/
 ```
 
-## 14. Migration & Indexing Utilities
+## 16. Migration & Indexing Utilities
 
 เพื่อรองรับการย้ายโปรเจกต์เก่าเข้าสู่มาตรฐาน GKS v3 และการรักษาความถูกต้องของดัชนีความรู้ (Knowledge Index) Framework จึงมีสคริปต์ช่วยเหลือดังนี้:
 
-### 15.1 Re-indexer (Deterministic)
+### 16.1 Re-indexer (Deterministic)
 สคริปต์สำหรับรวบรวม ID จากทุกไฟล์ใน `gks/` มาสร้างเป็นดัชนีรวมเพื่อใช้ในการค้นหาและระบุตัวตนข้าม Agent
 
 - **Location:** `scripts/msp/re-indexer.mjs`
@@ -980,7 +1008,7 @@ npm run msp:compose <FEAT-ID>    # deterministic join → src/
 - **Output:** `gks/00_index/atomic_index.jsonl`
 - **Usage:** รันทุกครั้งเมื่อมีการเพิ่มไฟล์ใหม่ด้วยมือ หรือต้องการซ่อมแซมดัชนีหากเกิด Link เสีย
 
-### 15.2 Legacy Standardizer (AI-Based)
+### 16.2 Legacy Standardizer (AI-Based)
 สคริปต์ที่ใช้พลังของ LLM ในการแปลงเอกสารเก่าที่ไม่มีมาตรฐาน (ไม่มี Frontmatter, ชื่อไฟล์ไม่ถูกต้อง) ให้กลายเป็น Atomic Knowledge ตามมาตรฐาน MSP
 
 - **Location:** `scripts/migration/standardizer.mjs`
@@ -993,7 +1021,7 @@ npm run msp:compose <FEAT-ID>    # deterministic join → src/
 node scripts/msp/gen-frontmatter.mjs <file>                  # draft frontmatter
 ```
 
-### 13.2 App (ขึ้นกับ stack — ตัวอย่าง generic)
+### 16.3 App (ขึ้นกับ stack — ตัวอย่าง generic)
 
 ```bash
 npm run lint
@@ -1002,7 +1030,7 @@ npm run test:e2e
 npm run build
 ```
 
-### 13.3 Pre-commit (via husky หรือ equivalent)
+### 16.4 Pre-commit (via husky หรือ equivalent)
 
 ```bash
 #!/usr/bin/env bash
@@ -1015,7 +1043,7 @@ npm run lint:size     # optional — warn if file > 500 LOC
 
 Bypass (emergency): `git commit --no-verify` + tag HOTFIX (+ backfill ≤ 48 ชม.)
 
-### 13.4 Slash Commands (แนะนำสำหรับ Claude Code / Gemini)
+### 16.5 Slash Commands (แนะนำสำหรับ Claude Code / Gemini)
 
 | Command | Action |
 |---|---|
@@ -1027,9 +1055,9 @@ Bypass (emergency): `git commit --no-verify` + tag HOTFIX (+ backfill ≤ 48 ช
 
 ---
 
-## 15. Path Encoding & Multi-Agent Coordination
+## 17. Path Encoding & Multi-Agent Coordination
 
-### 13.1 Path Encoding
+### 17.1 Path Encoding
 
 เพื่อให้ multi-agent อ้าง project ข้ามเครื่องได้โดยไม่ขึ้นกับ OS path separator:
 
@@ -1045,7 +1073,7 @@ MSP inbound path pattern:
 .brain/msp/projects/<path-encoded>/inbound/
 ```
 
-### 13.2 Agent Registry (`registry.yaml`)
+### 17.2 Agent Registry (`registry.yaml`)
 
 ```yaml
 # registry.yaml — Agent + ID registry
@@ -1072,7 +1100,7 @@ id_naming_conventions:
             description: <multi-line>
 ```
 
-### 13.3 Recommended Tier Mapping
+### 17.3 Recommended Tier Mapping
 
 | Tier | Suggested Model | Role |
 |---|---|---|
@@ -1080,7 +1108,7 @@ id_naming_conventions:
 | T2 Implementer | Claude Sonnet / Gemini Flash / Local CLI | template instantiation, tests, composer, validators |
 | T1 Executor | Qwen 14B / Llama 8B (local GPU) | 1-concern micro-task codegen |
 
-### 13.4 Traceability Summary
+### 17.4 Traceability Summary
 
 | Source | Role |
 |---|---|
@@ -1093,7 +1121,7 @@ id_naming_conventions:
 
 ---
 
-## 16. Minimum Viable Bootstrap (การเริ่มจากศูนย์)
+## 18. Minimum Viable Bootstrap (การเริ่มจากศูนย์)
 
 ขั้นตอนตั้งต้นโปรเจกต์ใหม่จาก boilerplate นี้:
 
@@ -1133,7 +1161,7 @@ touch CHANGELOG.md registry.yaml
 
 ---
 
-## 17. Checklist สำหรับ Fork ไปใช้งาน
+## 19. Checklist สำหรับ Fork ไปใช้งาน
 
 ```
 [ ] แทนที่ YourProject / YRP / ExampleFeature ทั้งหมดด้วยชื่อจริง
@@ -1148,7 +1176,7 @@ touch CHANGELOG.md registry.yaml
 
 ---
 
-## 18. Principles — หลักคิด 7 ข้อที่คงไว้เสมอ
+## 20. Principles — หลักคิด 7 ข้อที่คงไว้เสมอ
 
 1. **Context Isolation → Precision + Cost efficiency**
    ยิ่งจำกัดขอบเขตที่ agent เห็น ยิ่ง hallucinate น้อย ยิ่งถูก

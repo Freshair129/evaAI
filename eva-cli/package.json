@@ -15,6 +15,11 @@
     "test:watch": "vitest",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "reindex": "node ../scripts/msp/re-indexer.mjs",
+    "msp:index": "node ../scripts/msp/index.mjs",
+    "msp:propose": "node ../scripts/msp/propose.mjs",
+    "msp:promote": "node ../scripts/msp/promote.mjs",
+    "msp:review": "node ../scripts/msp/review.mjs",
+    "msp:validate": "node ../scripts/msp/validate.mjs",
     "reembed": "tsx src/scripts/re-embed.ts"
   },
   "dependencies": {

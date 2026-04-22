@@ -1,4 +1,4 @@
-﻿# 🌌 EVA Agent CLI (v1.0)
+# 🌌 EVA Agent CLI (v1.0)
 > **Architectural SSOT Agent for Zuri**
 > Powered by Typhoon (Chat) + Qwen (Code) + Gemma (Fast)
 
@@ -49,12 +49,21 @@ doppler run -- eva
 
 ## ✨ ความสามารถหลัก (Key Features)
 
-1.  **Hybrid Intelligence (3-in-1)**:
-    *   **Typhoon Mode**: เน้นการพูดคุย วางแผน และตรรกะภาษาไทยที่ลื่นไหล (API)
-    *   **Qwen Mode**: เน้นการเขียนโค้ดซับซ้อน, SQL, และ Prisma (Local Heavy)
-    *   **Gemma Mode**: เน้นการคิดวิเคราะห์เบื้องต้นที่รวดเร็ว (Local Fast)
-2.  **Terminal Integration**: EVA สามารถแนะนำคำสั่ง Shell (bash/powershell) และถามเพื่อขออนุญาตรันคำสั่งนั้นให้คุณทันที
-3.  **VRAM Optimized**: ระบบถูกออกแบบมาให้รันลื่นไหลบน VRAM 12GB (Sequential Processing)
+2.  **Hybrid Memory System (GKS v3)**: ระบบความจำ 4 เลเยอร์ (Atomic, FTS, Vector, Graph) ที่จัดอันดับความสำคัญด้วย RRF (Reciprocal Rank Fusion) เพื่อความแม่นยำสูงสุด
+3.  **Terminal Integration**: EVA สามารถแนะนำคำสั่ง Shell (bash/powershell) และถามเพื่อขออนุญาตรันคำสั่งนั้นให้คุณทันที
+4.  **VRAM Optimized**: ระบบถูกออกแบบมาให้รันลื่นไหลบน VRAM 12GB (Sequential Processing)
+
+---
+
+## 🛡️ MSP Governance Scripts
+
+คำสั่งจัดการองค์ความรู้ (Knowledge Management) ในระบบ GKS:
+
+- `npm run msp:index`: สร้างดัชนีความรู้ (rebuild search index & backlinks)
+- `npm run msp:propose`: สร้างข้อเสนอแนะความรู้ใหม่ (drop to inbound queue)
+- `npm run msp:review`: ตรวจสอบรายการความรู้ที่รอการรีวิว
+- `npm run msp:promote`: อนุมัติและย้ายความรู้เข้าสู่ระบบ GKS หลัก
+- `npm run msp:validate`: ตรวจสอบความถูกต้องและมาตรฐานของไฟล์ GKS
 
 ---
 

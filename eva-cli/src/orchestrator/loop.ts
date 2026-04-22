@@ -92,16 +92,19 @@ export class AgentLoop {
     let retrievalContext = ''
     if (routing.memorySources.length > 0) {
       try {
-        const result = await getMemoryStore().retrieve({
+        const hits = await getMemoryStore().resolveContext({
           text: intent.rewrittenQuery,
-          sources: routing.memorySources,
-          topK: 5,
+          mode: 'auto',
+          budget: {
+            maxHits: 5,
+            maxLatencyMs: 1000
+          }
         })
-        sink({ type: 'retrieval', hits: result.hits })
-        if (result.hits.length > 0) {
+        sink({ type: 'retrieval', hits: hits as any })
+        if (hits.length > 0) {
           retrievalContext =
             'Relevant knowledge:\n' +
-            result.hits
+            hits
               .map((h) => `- [${h.source}] ${h.id}: ${h.snippet.replace(/\n/g, ' ')}`)
               .join('\n')
         }
@@ -272,7 +275,11 @@ export class AgentLoop {
         let output: unknown = null
         if (step.op === 'search') {
           const args = step.args as { text: string; topK?: number }
-          output = await store.retrieve({ text: args.text, topK: args.topK ?? 5 })
+          output = await store.resolveContext({ 
+            text: args.text, 
+            mode: 'auto',
+            budget: { maxHits: args.topK ?? 5 }
+          })
         } else if (step.op === 'lookup') {
           const args = step.args as { id: string }
           output = store.lookup(args.id)

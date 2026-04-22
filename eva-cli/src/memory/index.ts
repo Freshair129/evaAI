@@ -5,20 +5,27 @@ import type {
   RetrievalResult,
   AtomicNote,
 } from '../types/memory.js'
-import { loadIndex, lookup, searchByText, filterIndex, readNote } from './gks.js'
+import { loadIndex, lookup, readNote } from './gks.js'
 import { VectorStore, type StoreName } from './vector/index.js'
 import { writeEpisodic, readEpisodic, listEpisodic } from './episodic.js'
 import { proposeInbound, type InboundArtifact, type InboundResult } from './inbound.js'
 import { getObsidianClient } from './obsidian-mcp.js'
-import type { RetrievalProvider } from './providers/types.js'
+import { 
+  type RetrievalProvider, 
+  type Query, 
+  type Hit as ProviderHit 
+} from './providers/types.js'
+import { HybridRetriever } from './hybrid-retriever.js'
+import { AtomicIndexProvider } from './providers/atomic.js'
+import { RipgrepFtsProvider } from './providers/fts.js'
+import { FileVectorProvider } from './providers/vector.js'
+import { BacklinkGraphProvider } from './providers/graph.js'
 
 export interface MemoryStoreOptions {
   enableObsidian?: boolean
   vectorSources?: StoreName[]
   /**
-   * Optional array of RetrievalProvider implementations. Reserved for Wave 1+
-   * of MSP-IMP-260421001 (KOS hybrid retrieval). Currently stored but not
-   * consulted — `retrieve()` uses the legacy path to preserve backward compat.
+   * Optional array of RetrievalProvider implementations.
    */
   providers?: RetrievalProvider[]
 }
@@ -27,16 +34,26 @@ export class MemoryStore {
   private vectors = new Map<StoreName, VectorStore>()
   private enableObsidian: boolean
   private vectorSources: StoreName[]
+  private hybrid: HybridRetriever
+
   /**
-   * Providers array — wired in Wave 0 (T2) but not yet consumed by retrieve().
-   * HybridRetriever (T7) will read from this in a later wave.
+   * Providers array — wired in Wave 0 (T2) and Wave 1 (T3-T6).
    */
   readonly providers: RetrievalProvider[]
 
   constructor(opts: MemoryStoreOptions = {}) {
     this.enableObsidian = opts.enableObsidian ?? false
     this.vectorSources = opts.vectorSources ?? ['atomic', 'episodic']
-    this.providers = opts.providers ?? []
+    
+    // If no providers provided, use defaults
+    this.providers = opts.providers || [
+      new AtomicIndexProvider(),
+      new RipgrepFtsProvider(),
+      new FileVectorProvider(),
+      new BacklinkGraphProvider()
+    ]
+    
+    this.hybrid = new HybridRetriever(this.providers)
   }
 
   private getVectorStore(name: StoreName): VectorStore {
@@ -48,80 +65,43 @@ export class MemoryStore {
     return store
   }
 
+  /**
+   * @deprecated Use resolveContext() for hybrid retrieval.
+   * This method now delegates to resolveContext for consistent results.
+   */
   async retrieve(query: RetrievalQuery): Promise<RetrievalResult> {
     const start = Date.now()
-    const sources = query.sources ?? ['atomic', 'vector', 'episodic']
-    const topK = query.topK ?? 5
-    const allHits: Hit[] = []
-    let totalScanned = 0
-
-    if (sources.includes('atomic')) {
-      const entries = filterIndex(query.filter ?? {})
-      totalScanned += entries.length
-      const textHits = searchByText(query.text, topK)
-      for (const entry of textHits) {
-        allHits.push({
-          source: 'atomic',
-          id: entry.id,
-          path: entry.path,
-          score: 0.7,
-          snippet: `${entry.id} (${entry.phase}/${entry.status})`,
-        })
+    
+    // Convert old RetrievalQuery to new Query
+    const newQuery: Query = {
+      text: query.text,
+      mode: 'auto',
+      filters: query.filter ? {
+        phase: query.filter.phase,
+        status: query.filter.status,
+        type: query.filter.type
+      } : undefined,
+      budget: {
+        maxHits: query.topK ?? 5,
+        maxLatencyMs: 500
       }
     }
 
-    if (sources.includes('vector')) {
-      for (const vs of this.vectorSources) {
-        const store = this.getVectorStore(vs)
-        totalScanned += store.size()
-        try {
-          const hits = await store.search(query.text, topK)
-          allHits.push(...hits)
-        } catch {
-          // embedder or store unavailable — skip
-        }
-      }
+    const hits = await this.resolveContext(newQuery)
+    
+    return { 
+      hits: hits as any, // Cast due to legacy Hit vs ProviderHit overlap
+      totalScanned: 0, // No longer tracked per-provider
+      latencyMs: Date.now() - start 
     }
+  }
 
-    if (sources.includes('obsidian') && this.enableObsidian) {
-      try {
-        const client = getObsidianClient()
-        const hits = await client.search(query.text, topK)
-        allHits.push(...hits)
-      } catch {
-        // obsidian unavailable — skip
-      }
-    }
-
-    if (sources.includes('episodic')) {
-      const sessions = listEpisodic()
-      totalScanned += sessions.length
-      const needle = query.text.toLowerCase()
-      for (const sid of sessions.slice(-20)) {
-        const mem = readEpisodic(sid)
-        if (!mem) continue
-        const hay = `${mem.summary} ${mem.tags.join(' ')}`.toLowerCase()
-        if (hay.includes(needle)) {
-          allHits.push({
-            source: 'episodic',
-            id: sid,
-            score: 0.6,
-            snippet: mem.summary.slice(0, 300),
-            meta: { tags: mem.tags, endedAt: mem.endedAt },
-          })
-        }
-      }
-    }
-
-    const dedup = new Map<string, Hit>()
-    for (const h of allHits) {
-      const key = h.path ?? h.id
-      const existing = dedup.get(key)
-      if (!existing || h.score > existing.score) dedup.set(key, h)
-    }
-    const hits = [...dedup.values()].sort((a, b) => b.score - a.score).slice(0, topK)
-
-    return { hits, totalScanned, latencyMs: Date.now() - start }
+  /**
+   * resolveContext — New hybrid retrieval API.
+   * Leverages Atomic, FTS, Vector, and Graph providers.
+   */
+  async resolveContext(query: Query): Promise<ProviderHit[]> {
+    return this.hybrid.resolve(query)
   }
 
   lookup(id: string): AtomicNote | null {
