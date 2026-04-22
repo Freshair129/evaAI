@@ -38,7 +38,7 @@ export function describeTools(): Array<{
   return listTools().map((t) => ({
     name: t.name,
     description: t.description,
-    inputSchema: zodToDescriptor(t.inputSchema),
+    inputSchema: zodToJsonSchema(t.inputSchema),
     permission: t.permission,
     sideEffect: t.sideEffect,
   }))
@@ -48,12 +48,83 @@ export function clearRegistry(): void {
   registry.clear()
 }
 
-// Minimal zod → descriptor conversion (just enough to pass to LLM)
-function zodToDescriptor(schema: z.ZodType): unknown {
-  try {
-    const desc = (schema as unknown as { description?: string }).description
-    return { description: desc ?? null }
-  } catch {
-    return {}
+// ── Zod → JSON Schema (subset: object, string, number, boolean, array, optional, enum) ──
+export function zodToJsonSchema(schema: z.ZodType): Record<string, unknown> {
+  return convertNode(schema)
+}
+
+function convertNode(schema: z.ZodType): Record<string, unknown> {
+  const inner = unwrap(schema)
+
+  if (inner instanceof z.ZodObject) {
+    const shape = inner.shape as Record<string, z.ZodType>
+    const properties: Record<string, unknown> = {}
+    const required: string[] = []
+
+    for (const [key, val] of Object.entries(shape)) {
+      const isOptional = val instanceof z.ZodOptional || val instanceof z.ZodDefault
+      properties[key] = convertNode(val)
+      if (!isOptional) required.push(key)
+    }
+
+    const out: Record<string, unknown> = { type: 'object', properties }
+    if (required.length) out.required = required
+    if (inner.description) out.description = inner.description
+    return out
   }
+
+  if (inner instanceof z.ZodString) {
+    const out: Record<string, unknown> = { type: 'string' }
+    if (inner.description) out.description = inner.description
+    return out
+  }
+
+  if (inner instanceof z.ZodNumber) {
+    const out: Record<string, unknown> = { type: 'number' }
+    if (inner.description) out.description = inner.description
+    return out
+  }
+
+  if (inner instanceof z.ZodBoolean) {
+    const out: Record<string, unknown> = { type: 'boolean' }
+    if (inner.description) out.description = inner.description
+    return out
+  }
+
+  if (inner instanceof z.ZodArray) {
+    const out: Record<string, unknown> = {
+      type: 'array',
+      items: convertNode(inner.element),
+    }
+    if (inner.description) out.description = inner.description
+    return out
+  }
+
+  if (inner instanceof z.ZodEnum) {
+    const values = (inner as z.ZodEnum<[string, ...string[]]>).options
+    const out: Record<string, unknown> = { type: 'string', enum: values }
+    if (inner.description) out.description = inner.description
+    return out
+  }
+
+  if (inner instanceof z.ZodLiteral) {
+    return { const: (inner as z.ZodLiteral<unknown>).value }
+  }
+
+  if (inner instanceof z.ZodUnion) {
+    const members = (inner as z.ZodUnion<[z.ZodType, ...z.ZodType[]]>).options
+    return { anyOf: members.map((m: z.ZodType) => convertNode(m)) }
+  }
+
+  // Fallback
+  return { type: 'object' }
+}
+
+// Unwrap Optional / Default / Describe wrappers
+function unwrap(schema: z.ZodType): z.ZodType {
+  if (schema instanceof z.ZodOptional) return unwrap(schema.unwrap())
+  if (schema instanceof z.ZodDefault) return unwrap(schema.removeDefault())
+  if (schema instanceof z.ZodNullable) return unwrap(schema.unwrap())
+  if (schema instanceof z.ZodBranded) return unwrap((schema as unknown as { _def: { type: z.ZodType } })._def.type)
+  return schema
 }

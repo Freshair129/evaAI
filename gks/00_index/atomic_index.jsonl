@@ -1,17 +1,17 @@
 {"id":"CONCEPT--EVA-MESSAGING-CONNECTORS","path":"gks/concepts/CONCEPT--EVA-MESSAGING-CONNECTORS.md","phase":"1","status":"raw","vault_id":"EVA-AGENT-001","last_updated":"2026-04-22T06:43:45.039Z"}
-{"id":"CONCEPT--EVA-TRI-BRAIN","path":"gks/concepts/CONCEPT--EVA-TRI-BRAIN.md","phase":"1","status":"raw","vault_id":"EVA-AGENT-001","last_updated":"2026-04-22T06:43:45.039Z"}
+{"id":"CONCEPT--EVA-TRI-BRAIN","path":"gks/concepts/CONCEPT--EVA-TRI-BRAIN.md","phase":"1","status":"stable","vault_id":"EVA-AGENT-001","last_updated":"2026-04-22T00:00:00.000Z"}
 {"id":"FINANCIAL_MODEL","path":"gks/concepts/FINANCIAL_MODEL.md","phase":"unknown","status":"draft","vault_id":"unassigned","last_updated":"2026-04-15T12:09:50.904Z"}
 {"id":"FUNDING_REQUEST","path":"gks/concepts/FUNDING_REQUEST.md","phase":"unknown","status":"Final Draft","vault_id":"unassigned","last_updated":"2026-04-15T12:02:46.861Z"}
-{"id":"PITCH_DECK","path":"gks/concepts/PITCH_DECK.md","phase":"unknown","status":"Final Polish","vault_id":"unassigned","last_updated":"2026-04-15T12:14:21.076Z"}
+{"id":"PITCH_DECK","path":"gks/concepts/PITCH_DECK.md","phase":"unknown","status":"Final Polish","vault_id":"unassigned","last_updated":"2026-04-15T12:14:21.056Z"}
 {"id":"SECURITY_REQ","path":"gks/concepts/SECURITY_REQ.md","phase":"unknown","status":"stub","vault_id":"unassigned","last_updated":"2026-04-15T11:41:04.123Z"}
 {"id":"ADR--CONNECTOR-TRANSPORT","path":"gks/adrs/ADR--CONNECTOR-TRANSPORT.md","phase":"2","status":"raw","vault_id":"EVA-AGENT-001","last_updated":"2026-04-22T06:43:45.034Z"}
 {"id":"ADR--FILE-BASED-VECTOR","path":"gks/adrs/ADR--FILE-BASED-VECTOR.md","phase":"2","status":"raw","vault_id":"EVA-AGENT-001","last_updated":"2026-04-22T06:43:45.034Z"}
-{"id":"ADR--GKS-ARCHITECTURE","path":"gks/adrs/ADR--GKS-ARCHITECTURE.md","phase":"2","status":"raw","vault_id":"EVA-AGENT-001","last_updated":"2026-04-22T08:06:33.541Z"}
-{"id":"ADR--HYBRID-RETRIEVAL","path":"gks/adrs/ADR--HYBRID-RETRIEVAL.md","phase":"2","status":"raw","vault_id":"EVA-AGENT-001","last_updated":"2026-04-22T08:06:33.541Z"}
-{"id":"ADR--ROUTING-MATRIX","path":"gks/adrs/ADR--ROUTING-MATRIX.md","phase":"2","status":"raw","vault_id":"EVA-AGENT-001","last_updated":"2026-04-22T06:43:45.034Z"}
+{"id":"ADR--GKS-ARCHITECTURE","path":"gks/adrs/ADR--GKS-ARCHITECTURE.md","phase":"2","status":"stable","vault_id":"EVA-AGENT-001","last_updated":"2026-04-22T00:00:00.000Z"}
+{"id":"ADR--HYBRID-RETRIEVAL","path":"gks/adrs/ADR--HYBRID-RETRIEVAL.md","phase":"2","status":"stable","vault_id":"EVA-AGENT-001","last_updated":"2026-04-22T00:00:00.000Z"}
+{"id":"ADR--ROUTING-MATRIX","path":"gks/adrs/ADR--ROUTING-MATRIX.md","phase":"2","status":"stable","vault_id":"EVA-AGENT-001","last_updated":"2026-04-22T00:00:00.000Z"}
 {"id":"ADR--TUI-INK-STACK","path":"gks/adrs/ADR--TUI-INK-STACK.md","phase":"2","status":"raw","vault_id":"EVA-AGENT-001","last_updated":"2026-04-22T06:43:45.034Z"}
 {"id":"ENTITY--SESSION-STATE","path":"gks/entities/ENTITY--SESSION-STATE.md","phase":"2","status":"raw","vault_id":"EVA-AGENT-001","last_updated":"2026-04-22T06:43:45.039Z"}
 {"id":"FLOW--INBOUND-MESSAGE","path":"gks/flows/FLOW--INBOUND-MESSAGE.md","phase":"2","status":"raw","vault_id":"EVA-AGENT-001","last_updated":"2026-04-22T06:43:45.039Z"}
 {"id":"FLOW--REACT-LOOP","path":"gks/flows/FLOW--REACT-LOOP.md","phase":"2","status":"raw","vault_id":"EVA-AGENT-001","last_updated":"2026-04-22T06:43:45.039Z"}
 {"id":"FRAME--EVA-FILE-TOPOLOGY","path":"gks/frameworks/FRAME--EVA-FILE-TOPOLOGY.md","phase":"2","status":"raw","vault_id":"EVA-AGENT-001","last_updated":"2026-04-22T06:43:45.039Z"}
-{"id":"FRAME--TRI-BRAIN-ARCHITECTURE","path":"gks/frameworks/FRAME--TRI-BRAIN-ARCHITECTURE.md","phase":"2","status":"raw","vault_id":"EVA-AGENT-001","last_updated":"2026-04-22T06:43:45.039Z"}
+{"id":"FRAME--TRI-BRAIN-ARCHITECTURE","path":"gks/frameworks/FRAME--TRI-BRAIN-ARCHITECTURE.md","phase":"2","status":"stable","vault_id":"EVA-AGENT-001","last_updated":"2026-04-22T00:00:00.000Z"}

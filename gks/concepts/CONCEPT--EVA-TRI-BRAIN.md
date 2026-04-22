@@ -2,7 +2,7 @@
 id: "CONCEPT--EVA-TRI-BRAIN"
 phase: 1
 type: "concept"
-status: "raw"
+status: "stable"
 vault_id: "EVA-AGENT-001"
 epistemic:
   confidence: 0.82

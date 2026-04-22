@@ -1,17 +1,16 @@
 import { randomUUID } from 'node:crypto'
 import type { Session } from '../types/session.js'
 import type { Intent } from '../types/intent.js'
-import type { Plan, Step, StepTrace } from '../types/plan.js'
+import type { Step, StepTrace } from '../types/plan.js'
 import type { BrainAdapter, BrainChunk } from '../types/brain.js'
 import type { Hit } from '../types/memory.js'
 import { getBrain } from '../brains/registry.js'
 import { parseIntent } from '../brains/limbic/intent-extractor.js'
-import { collectText } from '../lib/streaming.js'
 import { appendMessage, appendTrace, setStatus, updateStats } from './session.js'
 import { route, fallbackRoute, type RoutingPlan } from './router.js'
 import { PermissionSystem } from './permissions.js'
 import { ToolExecutor } from './tool-executor.js'
-import { bootstrapTools } from '../tools/index.js'
+import { bootstrapTools, describeTools } from '../tools/index.js'
 import { getMemoryStore } from '../memory/index.js'
 import { writeEpisodic } from '../memory/episodic.js'
 import { ModeSelector } from './mode-selector.js'
@@ -22,7 +21,6 @@ export type LoopEvent =
   | { type: 'intent'; intent: Intent }
   | { type: 'route'; plan: RoutingPlan }
   | { type: 'retrieval'; hits: Hit[] }
-  | { type: 'plan'; plan: Plan }
   | { type: 'step_start'; step: Step }
   | { type: 'step_done'; step: Step; trace: StepTrace }
   | { type: 'brain_chunk'; brain: string; chunk: BrainChunk }
@@ -145,9 +143,7 @@ export class AgentLoop {
       return msg.content
     }
 
-    // fallback to original planning logic for single_shot
-    // primary = cortex
-    const planPrompt = buildPlanPrompt(userInput, intent, retrievalContext)
+    // ─── PHASE 5: Native tool-use loop (single_shot) ─────────
     const cortex = getBrain('cortex', {
       cortex: {
         ...(routing.cortexModel !== undefined && { explicitModel: routing.cortexModel }),
@@ -155,39 +151,97 @@ export class AgentLoop {
         contextTokens: Math.ceil(retrievalContext.length / 4),
       },
     })
-    const rawPlan = await collectText(
-      cortex.invoke({
-        system: '',
-        messages: [{ role: 'user' as const, content: planPrompt }],
-        temperature: 0.3,
-        ...(signal !== undefined && { signal }),
-      }),
-    )
-    updateStats(session, { brainCalls: { cortex: 1, motor: 0, limbic: 0 } })
 
-    const plan = parsePlan(rawPlan, cortex, intent)
-    sink({ type: 'plan', plan })
+    const complexTaskTypes = ['write_adr', 'plan_architecture', 'doc_write']
+    const enableThinking = complexTaskTypes.includes(intent.taskType)
 
-    // ─── PHASE 5: Execute steps ───────────────────────────────
-    for (const step of plan.steps) {
+    const tools = describeTools().map((t) => ({
+      name: t.name,
+      description: t.description,
+      inputSchema: t.inputSchema,
+    }))
+
+    const messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> = [
+      {
+        role: 'user',
+        content: [
+          `Task: ${intent.rewrittenQuery}`,
+          retrievalContext ? `\n${retrievalContext}` : '',
+        ].join(''),
+      },
+    ]
+
+    let finalReply = ''
+    let cortexCalls = 0
+    const MAX_TOOL_ROUNDS = 10
+
+    for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
       if (signal?.aborted) break
-      sink({ type: 'step_start', step })
-      const trace = await this.executeStep(step, signal)
-      appendTrace(session, trace)
-      sink({ type: 'step_done', step, trace })
-      if (trace.status === 'error' && step.kind === 'tool_call' && step.critical) break
+
+      const toolCallResults: Array<{ callId: string; name: string; result: string }> = []
+      const assistantParts: string[] = []
+
+      for await (const chunk of cortex.invoke({
+        system: retrievalContext,
+        messages,
+        tools,
+        temperature: 0.3,
+        enableThinking,
+        ...(signal !== undefined && { signal }),
+      })) {
+        sink({ type: 'brain_chunk', brain: 'cortex', chunk })
+
+        if (chunk.type === 'text') {
+          assistantParts.push(chunk.content)
+        } else if (chunk.type === 'tool_call') {
+          const fakeStep: Step = {
+            id: chunk.callId,
+            kind: 'tool_call',
+            tool: chunk.name,
+            args: chunk.args as Record<string, unknown>,
+            critical: false,
+          }
+          sink({ type: 'step_start', step: fakeStep })
+          const trace = await this.executeStep(fakeStep, signal)
+          appendTrace(session, trace)
+          sink({ type: 'step_done', step: fakeStep, trace })
+          toolCallResults.push({
+            callId: chunk.callId,
+            name: chunk.name,
+            result: trace.status === 'success'
+              ? JSON.stringify(trace.output).slice(0, 4000)
+              : `error: ${trace.error ?? 'unknown'}`,
+          })
+        }
+      }
+
+      cortexCalls++
+      const assistantText = assistantParts.join('')
+      if (assistantText) finalReply = assistantText
+
+      if (toolCallResults.length === 0) break
+
+      // Append the assistant turn + tool results so the next round has context
+      if (assistantText) {
+        messages.push({ role: 'assistant', content: assistantText })
+      }
+      const toolResultContent = toolCallResults
+        .map((r) => `[Tool: ${r.name} | id: ${r.callId}]\n${r.result}`)
+        .join('\n\n')
+      messages.push({ role: 'user', content: toolResultContent })
     }
 
-    // ─── PHASE 6: Synthesize + stylize ────────────────────────
-    const summary = summarizeTraces(plan, session.traces)
-    const finalReply = routing.finalize
+    updateStats(session, { brainCalls: { cortex: cortexCalls, motor: 0, limbic: 0 } })
+
+    // ─── PHASE 6: Stylize ────────────────────────────────────
+    const styledReply = routing.finalize
       ? await this.invokeBrainText(
           routing.finalize,
-          `สรุปผลลัพธ์ให้ Boss เป็นภาษาไทยสุภาพ สั้นกระชับ:\n\n${summary}`,
+          `สรุปผลลัพธ์ให้ Boss เป็นภาษาไทยสุภาพ สั้นกระชับ:\n\n${finalReply}`,
         )
-      : summary
-    const msg = appendMessage(session, { role: 'agent', content: finalReply })
-    sink({ type: 'message', role: 'agent', content: finalReply })
+      : finalReply
+    const msg = appendMessage(session, { role: 'agent', content: styledReply })
+    sink({ type: 'message', role: 'agent', content: styledReply })
     return msg.content
   }
 
@@ -320,121 +374,6 @@ export class AgentLoop {
   }
 }
 
-function buildPlanPrompt(userInput: string, intent: Intent, context: string): string {
-  const parts = [
-    `User request: ${userInput}`,
-    `Rewritten query: ${intent.rewrittenQuery}`,
-    `Task type: ${intent.taskType}`,
-    `Urgency: ${intent.urgency}`,
-  ]
-  if (context) parts.push('', context)
-  parts.push('', 'Produce a <plan>...</plan> JSON block per the system contract.')
-  return parts.join('\n')
-}
-
-function parsePlan(raw: string, cortex: BrainAdapter, intent: Intent): Plan {
-  const match = raw.match(/<plan>\s*(\{[\s\S]*?\})\s*<\/plan>/)
-  const fallback: Plan = {
-    id: randomUUID(),
-    goal: intent.rewrittenQuery,
-    reasoning: raw.slice(0, 500),
-    steps: [],
-    estimated: { durationMs: 5000, costUsd: 0, tokens: 0 },
-    risky: false,
-    createdBy: 'cortex',
-    createdAt: new Date().toISOString(),
-  }
-  if (!match?.[1]) return fallback
-  try {
-    const parsed = JSON.parse(match[1]) as Partial<Plan> & { steps?: Step[] }
-    return {
-      id: randomUUID(),
-      goal: parsed.goal ?? intent.rewrittenQuery,
-      reasoning: parsed.reasoning ?? '',
-      steps: Array.isArray(parsed.steps) ? normalizeSteps(parsed.steps) : [],
-      estimated: parsed.estimated ?? fallback.estimated,
-      risky: parsed.risky ?? false,
-      createdBy: 'cortex',
-      createdAt: new Date().toISOString(),
-    }
-  } catch {
-    void cortex
-    return fallback
-  }
-}
-
-function normalizeSteps(raw: unknown[]): Step[] {
-  const out: Step[] = []
-  for (const item of raw) {
-    if (typeof item !== 'object' || item === null) continue
-    const s = item as Record<string, unknown>
-    const id = (s.id as string) ?? randomUUID()
-    const kind = s.kind as string
-
-    if (kind === 'tool_call') {
-      const step: Step = {
-        id,
-        kind: 'tool_call',
-        tool: String(s.tool ?? ''),
-        args: s.args ?? {},
-        critical: Boolean(s.critical),
-      }
-      out.push(step)
-    } else if (kind === 'brain_call') {
-      const step: Step = {
-        id,
-        kind: 'brain_call',
-        brain: (s.brain as 'cortex' | 'motor' | 'limbic') ?? 'motor',
-        subtype:
-          (s.subtype as 'code_gen' | 'code_edit' | 'review' | 'summarize' | 'stylize_thai') ??
-          'code_gen',
-        prompt: String(s.prompt ?? ''),
-      }
-      out.push(step)
-    } else if (kind === 'memory_op') {
-      const step: Step = {
-        id,
-        kind: 'memory_op',
-        op:
-          (s.op as
-            | 'search'
-            | 'lookup'
-            | 'recall_episodic'
-            | 'write_episodic'
-            | 'propose_inbound') ?? 'search',
-        args: s.args ?? {},
-      }
-      out.push(step)
-    } else if (kind === 'user_input') {
-      const step: Step = {
-        id,
-        kind: 'user_input',
-        question: String(s.question ?? ''),
-      }
-      out.push(step)
-    }
-  }
-  return out
-}
-
-function summarizeTraces(plan: Plan, traces: StepTrace[]): string {
-  const lines = [`Goal: ${plan.goal}`, `Steps executed: ${traces.length}`]
-  for (const t of traces.slice(-plan.steps.length)) {
-    const step = plan.steps.find((s) => s.id === t.stepId)
-    const name =
-      step?.kind === 'tool_call'
-        ? step.tool
-        : step?.kind === 'brain_call'
-          ? `${step.brain}:${step.subtype}`
-          : step?.kind ?? '?'
-    lines.push(`- [${t.status}] ${name} (${t.metrics.latencyMs}ms)`)
-    if (t.error) lines.push(`    error: ${t.error}`)
-    if (typeof t.output === 'string' && t.output) {
-      lines.push(`    output: ${t.output.slice(0, 400)}`)
-    }
-  }
-  return lines.join('\n')
-}
 
 function extractTags(history: Session['history']): string[] {
   const tags = new Set<string>()

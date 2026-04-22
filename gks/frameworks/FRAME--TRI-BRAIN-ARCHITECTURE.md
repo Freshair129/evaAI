@@ -2,7 +2,7 @@
 id: "FRAME--TRI-BRAIN-ARCHITECTURE"
 phase: 2
 type: "framework"
-status: "raw"
+status: "stable"
 vault_id: "EVA-AGENT-001"
 epistemic:
   confidence: 0.80
